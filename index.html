@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Winter Marsh Escape</title>
+
+<style>
+  body {
+    margin: 0;
+    overflow: hidden;
+    background: #8faab5;
+    font-family: Arial, sans-serif;
+  }
+
+  canvas {
+    display: block;
+    margin: auto;
+    background: linear-gradient(#cfe7ef, #5e858f);
+  }
+
+  #ui {
+    position: absolute;
+    top: 10px;
+    left: 15px;
+    color: white;
+    font-size: 28px;
+    text-shadow: 2px 2px 5px black;
+  }
+
+  #message {
+    position: absolute;
+    width: 100%;
+    top: 40%;
+    text-align: center;
+    color: white;
+    font-size: 52px;
+    text-shadow: 3px 3px 10px black;
+    display: none;
+    z-index: 2;
+    pointer-events: auto;
+  }
+
+  button {
+    margin-top: 20px;
+    padding: 12px 24px;
+    font-size: 24px;
+    border: none;
+    border-radius: 10px;
+    background: #29444d;
+    color: white;
+    cursor: pointer;
+  }
+</style>
+</head>
+
+<body>
+
+<div id="ui">Score: <span id="score">0</span> / 40</div>
+
+<div id="message"></div>
+
+<canvas id="gameCanvas"></canvas>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+canvas.width = 900;
+canvas.height = 600;
+
+const scoreText = document.getElementById("score");
+const message = document.getElementById("message");
+
+/** False until the player clicks Start — nothing moves or spawns before then. */
+let gameStarted = false;
+let gameRunning = false;
+let winOverlayShown = false;
+let score = 0;
+
+const keys = {};
+
+document.addEventListener("keydown", e => {
+  keys[e.key] = true;
+});
+
+document.addEventListener("keyup", e => {
+  keys[e.key] = false;
+});
+
+class Boat {
+  constructor() {
+    this.width = 70;
+    this.height = 40;
+    this.x = canvas.width / 2 - 35;
+    this.y = canvas.height - 100;
+    this.speed = 7;
+  }
+
+  update() {
+    if (keys["ArrowLeft"]) this.x -= this.speed;
+    if (keys["ArrowRight"]) this.x += this.speed;
+    if (keys["ArrowUp"]) this.y -= this.speed;
+    if (keys["ArrowDown"]) this.y += this.speed;
+
+    this.x = Math.max(0, Math.min(canvas.width - this.width, this.x));
+    this.y = Math.max(0, Math.min(canvas.height - this.height, this.y));
+  }
+
+  draw() {
+    // boat
+    ctx.fillStyle = "#4a2510";
+
+    ctx.beginPath();
+    ctx.moveTo(this.x, this.y + this.height);
+    ctx.lineTo(this.x + this.width, this.y + this.height);
+    ctx.lineTo(this.x + this.width - 10, this.y + 10);
+    ctx.lineTo(this.x + 10, this.y + 10);
+    ctx.closePath();
+    ctx.fill();
+
+    // cabin
+    ctx.fillStyle = "#b7dff2";
+    ctx.fillRect(this.x + 22, this.y, 26, 18);
+
+    // lantern
+    ctx.fillStyle = "#ffe89a";
+    ctx.beginPath();
+    ctx.arc(this.x + 35, this.y + 15, 6, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+class Obstacle {
+  constructor() {
+    this.type = Math.random() > 0.5 ? "ice" : "reed";
+
+    this.width = 40 + Math.random() * 50;
+    this.height = 40 + Math.random() * 50;
+
+    this.x = Math.random() * (canvas.width - this.width);
+    this.y = -this.height;
+
+    this.speed = 4 + Math.random() * 2 + score * 0.08;
+  }
+
+  update() {
+    this.y += this.speed;
+  }
+
+  draw() {
+    if (this.type === "ice") {
+      ctx.fillStyle = "#dff7ff";
+
+      ctx.beginPath();
+      ctx.moveTo(this.x + this.width/2, this.y);
+      ctx.lineTo(this.x + this.width, this.y + this.height/2);
+      ctx.lineTo(this.x + this.width/2, this.y + this.height);
+      ctx.lineTo(this.x, this.y + this.height/2);
+      ctx.closePath();
+      ctx.fill();
+
+    } else {
+      ctx.fillStyle = "#7d8f60";
+
+      for (let i = 0; i < 6; i++) {
+        ctx.fillRect(
+          this.x + i * 8,
+          this.y,
+          5,
+          this.height
+        );
+      }
+    }
+  }
+}
+
+const boat = new Boat();
+let obstacles = [];
+
+function spawnObstacle() {
+  obstacles.push(new Obstacle());
+
+  if (score > 10 && Math.random() < 0.3) {
+    obstacles.push(new Obstacle());
+  }
+
+  if (score > 25 && Math.random() < 0.5) {
+    obstacles.push(new Obstacle());
+  }
+}
+
+setInterval(() => {
+  if (gameStarted && gameRunning) {
+    spawnObstacle();
+  }
+}, 650);
+
+function drawBackground() {
+  // water
+  ctx.fillStyle = "#5d848d";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // snowy shore
+  ctx.fillStyle = "#e9f6fb";
+  ctx.fillRect(0, 0, canvas.width, 40);
+
+  // fog
+  ctx.fillStyle = "rgba(255,255,255,0.05)";
+  for (let i = 0; i < 8; i++) {
+    ctx.beginPath();
+    ctx.arc(
+      (i * 120 + performance.now() * 0.03) % canvas.width,
+      100 + i * 40,
+      90,
+      0,
+      Math.PI * 2
+    );
+    ctx.fill();
+  }
+
+  // snow
+  ctx.fillStyle = "white";
+
+  for (let i = 0; i < 120; i++) {
+    const x = (i * 73) % canvas.width;
+    const y = (i * 47 + performance.now() * 0.12) % canvas.height;
+
+    ctx.fillRect(x, y, 2, 2);
+  }
+}
+
+function collide(a, b) {
+  return (
+    a.x < b.x + b.width &&
+    a.x + a.width > b.x &&
+    a.y < b.y + b.height &&
+    a.y + a.height > b.y
+  );
+}
+
+function loseGame() {
+  gameRunning = false;
+
+  message.style.display = "block";
+  message.innerHTML = `
+    <div>You Crashed!</div>
+    <button type="button" onclick="restartGame()">Restart</button>
+  `;
+}
+
+function winGame() {
+  if (winOverlayShown) return;
+  winOverlayShown = true;
+  gameRunning = false;
+
+  message.style.display = "block";
+  message.innerHTML = `
+    <div>You Escaped the Marsh!</div>
+    <div style="font-size:22px;margin-top:14px;max-width:520px;margin-left:auto;margin-right:auto;line-height:1.35">
+      Click <strong>Continue</strong> when you are ready to return to the story.
+    </div>
+    <div style="margin-top:22px">
+      <button type="button" id="marshWinContinue">Continue</button>
+      <button type="button" id="marshPlayAgain" style="margin-left:12px;background:#3a5a65">Play again</button>
+    </div>
+  `;
+
+  document.getElementById("marshWinContinue").addEventListener(
+    "click",
+    () => {
+      window.parent.postMessage("MARSH_COMPLETE", "*");
+    },
+    { once: true }
+  );
+
+  document.getElementById("marshPlayAgain").addEventListener(
+    "click",
+    () => {
+      message.style.display = "none";
+      restartGame();
+    },
+    { once: true }
+  );
+}
+
+function showStartScreen() {
+  gameStarted = false;
+  gameRunning = false;
+  winOverlayShown = false;
+  message.style.display = "block";
+  message.innerHTML = `
+    <div style="font-size:40px;margin-bottom:12px">Winter Marsh Escape</div>
+    <div style="font-size:22px;margin-bottom:22px;max-width:480px;margin-left:auto;margin-right:auto;line-height:1.4">
+      Use the arrow keys to steer the boat. Dodge ice and reeds until you score 40.
+    </div>
+    <button type="button" id="marshStartBtn">Click to start</button>
+  `;
+
+  document.getElementById("marshStartBtn").addEventListener(
+    "click",
+    () => {
+      message.style.display = "none";
+      gameStarted = true;
+      gameRunning = true;
+    },
+    { once: true }
+  );
+}
+
+function restartGame() {
+  obstacles = [];
+  score = 0;
+  scoreText.textContent = score;
+
+  boat.x = canvas.width / 2 - 35;
+  boat.y = canvas.height - 100;
+
+  gameStarted = true;
+  gameRunning = true;
+  winOverlayShown = false;
+  message.style.display = "none";
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  drawBackground();
+
+  if (!gameStarted) {
+    boat.draw();
+    return;
+  }
+
+  if (!gameRunning) {
+    boat.draw();
+    return;
+  }
+
+  if (score >= 30) {
+    ctx.fillStyle = "rgba(255,255,255,0.12)";
+    ctx.fillRect(0, 0, canvas.width, 70);
+
+    ctx.fillStyle = "white";
+    ctx.font = "28px Arial";
+    ctx.fillText("The far shore is close...", 290, 45);
+  }
+
+  boat.update();
+  boat.draw();
+
+  obstacles.forEach((obstacle, index) => {
+    obstacle.update();
+    obstacle.draw();
+
+    if (collide(boat, obstacle)) {
+      loseGame();
+    }
+
+    if (obstacle.y > canvas.height) {
+      obstacles.splice(index, 1);
+
+      score++;
+      scoreText.textContent = score;
+
+      if (score >= 40) {
+        winGame();
+      }
+    }
+  });
+}
+
+showStartScreen();
+animate();
+</script>
+
+</body>
+</html>

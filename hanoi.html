@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Forest Owl Pellet Towers</title>
+
+<style>
+  body {
+    margin: 0;
+    min-height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: row;
+    font-family: Arial, sans-serif;
+    background: #1b2b1f;
+  }
+
+  #rulesHint {
+    flex: 0 0 200px;
+    max-width: 36vw;
+    padding: 18px 14px;
+    box-sizing: border-box;
+    background: linear-gradient(180deg, #121a14 0%, #1b2b1f 50%);
+    color: #e6dcc4;
+    font-size: 13px;
+    line-height: 1.45;
+    border-right: 1px solid rgba(255, 248, 220, 0.1);
+    overflow-y: auto;
+  }
+
+  #rulesHint h2 {
+    margin: 0 0 10px;
+    font-size: 15px;
+    color: #f4e8c8;
+  }
+
+  #rulesHint ul {
+    margin: 0;
+    padding-left: 16px;
+  }
+
+  #rulesHint li {
+    margin-bottom: 8px;
+  }
+
+  #rulesHint .goal {
+    margin-top: 12px;
+    padding: 8px 8px;
+    border-radius: 6px;
+    background: rgba(60, 48, 32, 0.4);
+    font-size: 12px;
+    color: #f2e6c8;
+  }
+
+  #stage {
+    position: relative;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 0;
+    overflow: auto;
+  }
+
+  canvas {
+    display: block;
+    margin: 0 auto;
+    background: linear-gradient(#1b2b1f, #324d33);
+    max-width: 100%;
+    height: auto;
+  }
+
+  #ui {
+    position: relative;
+    width: 100%;
+    padding: 10px 8px 4px;
+    text-align: center;
+    color: #f4f1d0;
+    font-size: 24px;
+    text-shadow: 2px 2px 5px black;
+    flex-shrink: 0;
+  }
+
+  #message {
+    position: absolute;
+    left: 0;
+    right: 0;
+    width: 100%;
+    top: 45%;
+    text-align: center;
+    color: #fff8dc;
+    font-size: 48px;
+    display: none;
+    text-shadow: 3px 3px 8px black;
+    z-index: 2;
+    pointer-events: auto;
+  }
+
+  button {
+    margin-top: 20px;
+    padding: 12px 22px;
+    font-size: 22px;
+    border: none;
+    border-radius: 10px;
+    background: #5f4428;
+    color: white;
+    cursor: pointer;
+  }
+</style>
+</head>
+
+<body>
+
+  <aside id="rulesHint" aria-label="Tower rules">
+    <h2>Owl pellet rules</h2>
+    <ul>
+      <li>Tap a root: pick up its top pellet, or drop what you hold.</li>
+      <li>Only one pellet per move.</li>
+      <li>Never place a bigger pellet on a smaller one.</li>
+      <li>Largest stays on the bottom of the stack.</li>
+    </ul>
+    <p class="goal">Goal: build the full tower on the <strong>right</strong> root (warmer color). The middle root also counts if you finish there.</p>
+  </aside>
+
+  <div id="stage">
+    <div id="ui">
+      <div style="font-size: 30px; margin-bottom: 14px;">
+        Forest Owl Pellet Towers
+      </div>
+
+      <div style="font-size: 20px; margin-top: 10px;">
+        Click a root to pick up or place a pellet
+      </div>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+    <div id="message"></div>
+  </div>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+canvas.width = 1000;
+canvas.height = 650;
+
+const message = document.getElementById("message");
+
+const ROOT_X = [220, 500, 780];
+const ROOT_Y = 520;
+/** Rightmost post — Tyto’s goal; drawn in a warmer tone. */
+const TARGET_ROOT_INDEX = 2;
+
+let selectedRoot = null;
+let carriedPellet = null;
+
+const roots = [
+  [5,4,3,2,1],
+  [],
+  []
+];
+
+const pelletColors = [
+  "#8b6a4f",
+  "#9d7656",
+  "#ad8561",
+  "#bc9270",
+  "#d0a17c"
+];
+
+canvas.addEventListener("click", handleClick);
+
+function handleClick(e) {
+  const rect = canvas.getBoundingClientRect();
+  const mouseX = e.clientX - rect.left;
+
+  let clickedRoot = null;
+
+  for (let i = 0; i < ROOT_X.length; i++) {
+    if (Math.abs(mouseX - ROOT_X[i]) < 100) {
+      clickedRoot = i;
+    }
+  }
+
+  if (clickedRoot === null) return;
+
+  // pick up pellet
+  if (carriedPellet === null) {
+    if (roots[clickedRoot].length > 0) {
+      carriedPellet = roots[clickedRoot].pop();
+      selectedRoot = clickedRoot;
+    }
+  }
+
+  // place pellet
+  else {
+    const target = roots[clickedRoot];
+
+    if (
+      target.length === 0 ||
+      target[target.length - 1] > carriedPellet
+    ) {
+      target.push(carriedPellet);
+
+      carriedPellet = null;
+      selectedRoot = null;
+
+      checkWin();
+    }
+  }
+}
+
+function checkWin() {
+  if (
+    roots[1].length === 5 ||
+    roots[2].length === 5
+  ) {
+    message.style.display = "block";
+
+    message.innerHTML = `
+      <div>The owl pellets are safely sorted!</div>
+
+      <div style="
+        font-size: 28px;
+        margin-top: 18px;
+        color: #f2deb2;
+      ">
+        You earned a wooden boat.
+      </div>
+
+      <button onclick="restartGame()">
+        Play Again
+      </button>
+    `;
+    window.parent.postMessage("TYTO_COMPLETE", "*");
+  }
+}
+
+function restartGame() {
+  roots[0] = [5,4,3,2,1];
+  roots[1] = [];
+  roots[2] = [];
+
+  carriedPellet = null;
+  selectedRoot = null;
+
+  message.style.display = "none";
+}
+
+function drawBackground() {
+  // forest sky
+  const gradient = ctx.createLinearGradient(0,0,0,canvas.height);
+
+  gradient.addColorStop(0, "#18261a");
+  gradient.addColorStop(1, "#2e4a2f");
+
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  // moon
+  ctx.fillStyle = "#f3f1cf";
+  ctx.beginPath();
+  ctx.arc(850, 100, 50, 0, Math.PI * 2);
+  ctx.fill();
+
+  // stars
+  ctx.fillStyle = "white";
+
+  for (let i = 0; i < 80; i++) {
+    ctx.fillRect(
+      (i * 97) % canvas.width,
+      (i * 53) % 250,
+      2,
+      2
+    );
+  }
+
+  // ground
+  ctx.fillStyle = "#3d2c1f";
+  ctx.fillRect(0, 520, canvas.width, 130);
+
+  // grass
+  ctx.fillStyle = "#456b40";
+
+  for (let i = 0; i < canvas.width; i += 10) {
+    ctx.fillRect(i, 515, 3, 10 + Math.sin(i) * 4);
+  }
+}
+
+function drawRoots() {
+  const trunkHalf = 22;
+  const trunkBaseY = ROOT_Y + 40;
+  const trunkApexY = ROOT_Y - 168;
+
+  for (let i = 0; i < ROOT_X.length; i++) {
+    const x = ROOT_X[i];
+    const isTarget = i === TARGET_ROOT_INDEX;
+
+    if (isTarget) {
+      const glow = ctx.createRadialGradient(x, ROOT_Y - 48, 2, x, ROOT_Y - 42, 82);
+      glow.addColorStop(0, "rgba(255, 210, 140, 0.16)");
+      glow.addColorStop(0.5, "rgba(160, 120, 80, 0.05)");
+      glow.addColorStop(1, "rgba(0, 0, 0, 0)");
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(x, ROOT_Y - 45, 82, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Slender taproot: slight flare into soil, narrow shaft, fine tip
+    ctx.fillStyle = isTarget ? "#6d563e" : "#4d3524";
+
+    ctx.beginPath();
+    ctx.moveTo(x - trunkHalf - 6, trunkBaseY + 4);
+    ctx.quadraticCurveTo(x - 5, trunkBaseY - 4, x - 4, trunkApexY + 48);
+    ctx.lineTo(x, trunkApexY);
+    ctx.lineTo(x + 4, trunkApexY + 48);
+    ctx.quadraticCurveTo(x + 5, trunkBaseY - 4, x + trunkHalf + 6, trunkBaseY + 4);
+    ctx.closePath();
+    ctx.fill();
+
+    if (isTarget) {
+      ctx.beginPath();
+      ctx.moveTo(x - trunkHalf - 6, trunkBaseY + 4);
+      ctx.quadraticCurveTo(x - 5, trunkBaseY - 4, x - 4, trunkApexY + 48);
+      ctx.lineTo(x, trunkApexY);
+      ctx.lineTo(x + 4, trunkApexY + 48);
+      ctx.quadraticCurveTo(x + 5, trunkBaseY - 4, x + trunkHalf + 6, trunkBaseY + 4);
+      ctx.closePath();
+      ctx.strokeStyle = "rgba(255, 215, 150, 0.38)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    // Lateral roots at soil line (thinner strokes, shorter spread)
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.strokeStyle = isTarget ? "#8a6e48" : "#5c4028";
+    ctx.lineWidth = 5;
+
+    ctx.beginPath();
+    ctx.moveTo(x, trunkBaseY - 2);
+    ctx.bezierCurveTo(
+      x - 16,
+      trunkBaseY + 24,
+      x - 30,
+      trunkBaseY + 10,
+      x - 46,
+      trunkBaseY + 48
+    );
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(x, trunkBaseY - 2);
+    ctx.bezierCurveTo(
+      x + 16,
+      trunkBaseY + 24,
+      x + 30,
+      trunkBaseY + 10,
+      x + 46,
+      trunkBaseY + 48
+    );
+    ctx.stroke();
+
+    ctx.lineCap = "butt";
+    ctx.lineJoin = "miter";
+  }
+}
+
+function drawPellet(x, y, size, color) {
+
+  // shadow
+  ctx.fillStyle = "rgba(0,0,0,0.25)";
+  ctx.beginPath();
+  ctx.ellipse(x + 3, y + 4, size, 14, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // pellet body
+  ctx.fillStyle = color;
+
+  ctx.beginPath();
+  ctx.ellipse(x, y, size, 18, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // texture
+  ctx.fillStyle = "rgba(255,255,255,0.12)";
+
+  for (let i = 0; i < 5; i++) {
+    ctx.beginPath();
+    ctx.arc(
+      x - size/2 + Math.random() * size,
+      y - 10 + Math.random() * 20,
+      2,
+      0,
+      Math.PI * 2
+    );
+    ctx.fill();
+  }
+}
+
+function drawGame() {
+
+  drawBackground();
+  drawRoots();
+
+  // pellets on roots
+  for (let root = 0; root < roots.length; root++) {
+
+    for (let i = 0; i < roots[root].length; i++) {
+
+      const pellet = roots[root][i];
+
+      const size = 30 + pellet * 18;
+
+      const x = ROOT_X[root];
+      const y = ROOT_Y - i * 35;
+
+      drawPellet(
+        x,
+        y,
+        size,
+        pelletColors[pellet - 1]
+      );
+    }
+  }
+
+  // carried pellet
+  if (carriedPellet !== null) {
+
+    const size = 30 + carriedPellet * 18;
+
+    drawPellet(
+      canvas.width / 2,
+      120,
+      size,
+      pelletColors[carriedPellet - 1]
+    );
+
+    ctx.fillStyle = "#fff8dc";
+    ctx.font = "26px Arial";
+    ctx.fillText(
+      "",
+      canvas.width / 2 - 90,
+      60
+    );
+  }
+}
+
+function animate() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  drawGame();
+
+  requestAnimationFrame(animate);
+}
+
+animate();
+</script>
+
+</body>
+</html>
