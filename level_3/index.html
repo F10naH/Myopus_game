@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Level 3 - The Abandoned Orchard</title>
+    <style>
+      body {
+        background: #121a16;
+        color: #e8ebe4;
+        font-family: Georgia, serif;
+      }
+      #storyPanel {
+        max-width: 42rem;
+        margin: 2rem auto;
+        padding: 1.25rem;
+      }
+      .story-text {
+        line-height: 1.65;
+        font-size: 1.1rem;
+        margin-bottom: 2rem;
+      }
+      button {
+        display: block;
+        width: 100%;
+        padding: 10px;
+        margin: 10px 0;
+        background: #2a3d32;
+        color: white;
+        border: 1px solid #5a7a66;
+        cursor: pointer;
+      }
+      #gameFrame {
+        display: none;
+        width: 100%;
+        height: 100vh;
+        border: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="sceneBackdrop" aria-hidden="true">
+      <div class="scene-backdrop-photo"></div>
+      <div class="scene-backdrop-overlays"></div>
+    </div>
+
+    <div id="storyPanel">
+      <div id="adventureBox"></div>
+    </div>
+
+    <iframe id="gameFrame" title="Puzzle"></iframe>
+
+    <script src="level3.js"></script>
+  </body>
+</html>
