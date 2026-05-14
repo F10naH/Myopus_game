@@ -104,7 +104,7 @@
       cursor: pointer;
       z-index: 2;
       pointer-events: none; /* unlocked after camera settles */
-      animation: enableInteraction 0.01s 6s forwards;
+      animation: enableInteraction 0.01s 5.2s forwards;
     }
 
     @keyframes enableInteraction {
@@ -119,7 +119,7 @@
       background: rgba(255, 240, 230, 0.04);
       overflow: hidden;
       opacity: 0;
-      animation: frameFadeIn 1.6s ease-out 4s forwards;
+      animation: frameFadeIn 1.2s ease-out 0.85s forwards;
     }
 
     @keyframes frameFadeIn {
@@ -149,9 +149,9 @@
       opacity: 0;
       filter: blur(7px);
       transform: translate(var(--x), var(--y)) rotate(var(--r)) scale(0.85);
-      animation: assembleTitle 4.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-      /* Delay letters until the camera is most of the way up */
-      animation-delay: calc(var(--delay) + 4s);
+      animation: assembleTitle 4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      /* Start title motion soon after pan begins so it feels connected, not “dead air” */
+      animation-delay: calc(var(--delay) + 1s);
     }
 
     @keyframes assembleTitle {
@@ -177,7 +177,7 @@
       letter-spacing: 0.45em;
       text-transform: uppercase;
       opacity: 0;
-      animation: fadeUp 2.2s ease 8.4s forwards;
+      animation: fadeUp 1.6s ease 3.6s forwards;
     }
 
     .tap-text {
@@ -188,7 +188,7 @@
       letter-spacing: 0.18em;
       text-transform: uppercase;
       opacity: 0;
-      animation: tapFade 2.4s ease-in-out 10.2s infinite;
+      animation: tapFade 2.4s ease-in-out 4.6s infinite;
     }
 
     @keyframes fadeUp {
