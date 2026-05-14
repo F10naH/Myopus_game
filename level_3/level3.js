@@ -8,7 +8,7 @@ Main Narrative & Logic Script
 /* Backdrops — same layering as level 2 (photo under mood + vignette). */
 const BACKDROP_IMAGES = {
   orchard: "images/orchard-main.jpg",
-  hare: "images/hare-tweaking.jpg",
+  hare: "images/thrashinghare.jpg",
 };
 
 /** Only `orchard_entry` and `hare_approach` use photos; other scenes use gradient only. */
@@ -319,7 +319,8 @@ function normalizeStoryText(raw) {
   if (!raw) return "";
   const lines = raw.replace(/\r\n/g, "\n").split("\n");
   const first = lines.findIndex((l) => l.trim());
-  const last = lines.length - 1 - [...lines].reverse().findIndex((l) => l.trim());
+  const last =
+    lines.length - 1 - [...lines].reverse().findIndex((l) => l.trim());
   if (first === -1) return "";
   const body = lines.slice(first, last + 1);
   const nonempty = body.filter((l) => l.trim());
@@ -339,7 +340,8 @@ function showText(text, options = []) {
   const container = document.getElementById("adventureBox");
   if (!container) return;
 
-  const body = typeof text === "string" ? normalizeStoryText(text) : String(text);
+  const body =
+    typeof text === "string" ? normalizeStoryText(text) : String(text);
 
   let html = `<div class="story-text">${body}</div>`;
   options.forEach((opt, i) => {
