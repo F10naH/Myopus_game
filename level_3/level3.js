@@ -5,28 +5,22 @@ Main Narrative & Logic Script
 ========================================
 */
 
-/* Configuration for Level 3 Images */
+/* Backdrops — same layering as level 2 (photo under mood + vignette). */
 const BACKDROP_IMAGES = {
   orchard: "images/orchard-main.jpg",
   hare: "images/hare-tweaking.jpg",
 };
 
-/** Vertical position of the photo layer (second value). Tweak if the crop feels wrong. */
+/** Only `orchard_entry` and `hare_approach` use photos; other scenes use gradient only. */
 const ORCHARD_BACKDROP_POSITION = "center 50%";
 const HARE_BACKDROP_POSITION = "center 50%";
 
-/**
- * Photo width as % of viewport; height is auto (keeps aspect ratio).
- * Larger = more zoomed out. Letterboxing uses the backdrop color.
- */
-const ORCHARD_BACKDROP_ZOOM = "100%";
-const HARE_BACKDROP_ZOOM = "100%";
+const ORCHARD_BACKDROP_ZOOM = "128%";
+const HARE_BACKDROP_ZOOM = "128%";
 
-/** 0 = invisible, 1 = full. Only affects the photo layer, not the gradients on top. */
 const ORCHARD_PHOTO_OPACITY = 0.88;
 const HARE_PHOTO_OPACITY = 0.88;
 
-/** Fade-in duration for the photo (also sets --scene-photo-fade-duration on :root). */
 const BACKDROP_PHOTO_FADE_SEC = 2;
 
 if (typeof document !== "undefined") {
@@ -36,7 +30,6 @@ if (typeof document !== "undefined") {
   );
 }
 
-// State tracking for transitions
 let lastBackdropImageKey = "";
 let lastPhotoOpacity = 0;
 
@@ -54,11 +47,10 @@ function setScene(scene) {
 }
 
 function renderScene() {
+  applySceneBackdrop(levelState.currentScene);
+
   const container = document.getElementById("adventureBox");
   if (!container) return;
-
-  // Apply visual backdrop based on current scene
-  applySceneBackdrop(levelState.currentScene);
 
   switch (levelState.currentScene) {
     case "orchard_entry":
@@ -85,8 +77,8 @@ function renderScene() {
 
     case "hose_inspect":
       let hoseText = levelState.hoseConnected
-        ? "The hose is connected to the faucet. Water drips steadily[cite: 65]."
-        : "A fragment of a dried-out, cracked garden hose lies in the dirt. It looks like the 'snake' the Hare mentioned[cite: 53, 63].";
+        ? "The hose is connected to the faucet. Water drips steadily."
+        : "A fragment of a dried-out, cracked garden hose lies in the dirt. It looks like the 'snake' the Hare mentioned";
 
       let hoseOptions = levelState.hoseConnected
         ? [
@@ -123,8 +115,8 @@ function renderScene() {
 
     case "apple_inspect":
       let appleText = levelState.appleScented
-        ? "The apple is wet and smells dizzyingly sweet. The scent is potent[cite: 69]."
-        : "A mushy, brown apple sits in a depression[cite: 62]. It needs moisture to release its scent.";
+        ? "The apple is wet and smells dizzyingly sweet. The scent is potent."
+        : "A mushy, brown apple sits in a depression. It needs moisture to release its scent.";
 
       let appleOptions = [];
       if (!levelState.hoseConnected) {
@@ -172,7 +164,7 @@ function renderScene() {
         showText(
           `The Hare is "highkey tweaking"[cite: 57]. It kicks out in fear. You are too small to handle the recoil of its thrashing[cite: 66]. 
           
-          HARE: "Stay back! The Spirit of the Orchard has sent the snakes for me!"[cite: 52, 53].`,
+          HARE: "Stay back! The Spirit of the Orchard has sent the snakes for me!"`,
           [
             {
               text: "Retreat for now",
@@ -238,71 +230,127 @@ function renderScene() {
 function applySceneBackdrop(sceneId) {
   const root = document.documentElement;
 
-  // Define which scenes show which images
-  const orchardScenes = ["orchard_entry", "hose_inspect", "apple_inspect"];
-  const hareScenes = ["hare_approach", "hare_game_start", "level_complete"];
+  const gradients = {
+    neutral: `linear-gradient(
+        165deg,
+        rgba(28, 22, 16, 0.94) 0%,
+        rgba(42, 34, 24, 0.9) 45%,
+        rgba(18, 14, 10, 0.96) 100%
+      )`,
+    orchardPhoto: `linear-gradient(
+        155deg,
+        rgba(22, 18, 12, 0.82) 0%,
+        rgba(36, 30, 20, 0.72) 42%,
+        rgba(14, 12, 8, 0.9) 100%
+      )`,
+    harePhoto: `linear-gradient(
+        160deg,
+        rgba(14, 12, 18, 0.8) 0%,
+        rgba(28, 22, 26, 0.68) 40%,
+        rgba(10, 8, 12, 0.9) 100%
+      )`,
+  };
 
   let image = "none";
+  let gradient = gradients.neutral;
+  let imgPosition = "center center";
+  let imgSize = "cover";
   let photoOpacity = 0;
-  let position = "center center";
-  let zoom = "100%";
 
-  if (orchardScenes.includes(sceneId)) {
+  if (sceneId === "orchard_entry") {
     image = `url("${BACKDROP_IMAGES.orchard}")`;
+    gradient = gradients.orchardPhoto;
+    imgPosition = ORCHARD_BACKDROP_POSITION;
+    imgSize = ORCHARD_BACKDROP_ZOOM;
     photoOpacity = ORCHARD_PHOTO_OPACITY;
-    position = ORCHARD_BACKDROP_POSITION;
-    zoom = ORCHARD_BACKDROP_ZOOM;
-  } else if (hareScenes.includes(sceneId)) {
+  } else if (sceneId === "hare_approach") {
     image = `url("${BACKDROP_IMAGES.hare}")`;
+    gradient = gradients.harePhoto;
+    imgPosition = HARE_BACKDROP_POSITION;
+    imgSize = HARE_BACKDROP_ZOOM;
     photoOpacity = HARE_PHOTO_OPACITY;
-    position = HARE_BACKDROP_POSITION;
-    zoom = HARE_BACKDROP_ZOOM;
   }
 
-  // Set CSS Variables
   root.style.setProperty("--scene-bg-image", image);
-  root.style.setProperty("--scene-img-position", position);
-  root.style.setProperty("--scene-img-size", zoom);
+  root.style.setProperty("--scene-bg-gradient", gradient);
+  root.style.setProperty("--scene-img-position", imgPosition);
+  root.style.setProperty("--scene-img-size", imgSize);
 
   const photoEl = document.querySelector(".scene-backdrop-photo");
-  if (!photoEl) return;
+  const imageKey = image;
+  const sameImage = imageKey === lastBackdropImageKey;
+  const hadPhoto = lastPhotoOpacity > 0;
 
-  // Handle the fade-in logic
-  if (image !== lastBackdropImageKey) {
-    photoEl.classList.add("scene-backdrop-photo--no-transition");
-    root.style.setProperty("--scene-photo-opacity", "0");
-    void photoEl.offsetHeight; // Force reflow
-    photoEl.classList.remove("scene-backdrop-photo--no-transition");
-
-    requestAnimationFrame(() => {
-      root.style.setProperty("--scene-photo-opacity", String(photoOpacity));
-    });
+  if (photoOpacity <= 0) {
+    if (photoEl) {
+      photoEl.classList.add("scene-backdrop-photo--no-transition");
+      root.style.setProperty("--scene-photo-opacity", "0");
+      void photoEl.offsetHeight;
+      photoEl.classList.remove("scene-backdrop-photo--no-transition");
+    } else {
+      root.style.setProperty("--scene-photo-opacity", "0");
+    }
+    lastBackdropImageKey = imageKey;
+    lastPhotoOpacity = 0;
+    return;
   }
 
-  lastBackdropImageKey = image;
+  const needsFadeIn = !sameImage || !hadPhoto;
+
+  if (needsFadeIn && photoEl) {
+    photoEl.classList.add("scene-backdrop-photo--no-transition");
+    root.style.setProperty("--scene-photo-opacity", "0");
+    void photoEl.offsetHeight;
+    photoEl.classList.remove("scene-backdrop-photo--no-transition");
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        root.style.setProperty("--scene-photo-opacity", String(photoOpacity));
+      });
+    });
+  } else {
+    root.style.setProperty("--scene-photo-opacity", String(photoOpacity));
+  }
+
+  lastBackdropImageKey = imageKey;
+  lastPhotoOpacity = photoOpacity;
 }
 
-/**
- * Updated showText to use Event Listeners like level2.js
- */
+function normalizeStoryText(raw) {
+  if (!raw) return "";
+  const lines = raw.replace(/\r\n/g, "\n").split("\n");
+  const first = lines.findIndex((l) => l.trim());
+  const last = lines.length - 1 - [...lines].reverse().findIndex((l) => l.trim());
+  if (first === -1) return "";
+  const body = lines.slice(first, last + 1);
+  const nonempty = body.filter((l) => l.trim());
+  const min = Math.min(
+    ...nonempty.map((l) => {
+      const m = l.match(/^[ \t]*/);
+      return m ? m[0].length : 0;
+    }),
+  );
+  return body
+    .map((l) => (l.trim() ? l.slice(min) : ""))
+    .join("\n")
+    .replace(/\n+$/, "");
+}
+
 function showText(text, options = []) {
   const container = document.getElementById("adventureBox");
   if (!container) return;
 
-  let html = `<div class="story-text">${text}</div>`;
-  // Create unique IDs for buttons to attach listeners later
+  const body = typeof text === "string" ? normalizeStoryText(text) : String(text);
+
+  let html = `<div class="story-text">${body}</div>`;
   options.forEach((opt, i) => {
-    html += `<button type="button" id="opt-${i}">${opt.text}</button>`;
+    html += `<button type="button" data-opt-index="${i}">${opt.text}</button>`;
   });
 
   container.innerHTML = html;
 
-  // Attach real click listeners
-  options.forEach((opt, i) => {
-    const btn = document.getElementById(`opt-${i}`);
-    if (btn) {
-      btn.addEventListener("click", opt.action);
-    }
+  container.querySelectorAll("button[data-opt-index]").forEach((btn) => {
+    const idx = parseInt(btn.getAttribute("data-opt-index"), 10);
+    btn.addEventListener("click", () => options[idx].action());
   });
 }
 
