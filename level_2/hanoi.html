@@ -53,6 +53,23 @@
     color: #f2e6c8;
   }
 
+  #rulesHint .rules-reset-btn {
+    margin-top: 18px;
+    width: 100%;
+    padding: 10px 14px;
+    font-size: 14px;
+    border: none;
+    border-radius: 8px;
+    background: #4a3520;
+    color: #f4ead8;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  #rulesHint .rules-reset-btn:hover {
+    background: #5c4328;
+  }
+
   #stage {
     position: relative;
     flex: 1;
@@ -121,6 +138,9 @@
       <li>Largest stays on the bottom of the stack.</li>
     </ul>
     <p class="goal">Goal: build the full tower on the <strong>right</strong> root (warmer color). The middle root also counts if you finish there.</p>
+    <button type="button" class="rules-reset-btn" id="resetTowerBtn" title="Start the puzzle over from the beginning">
+      Reset tower
+    </button>
   </aside>
 
   <div id="stage">
@@ -154,6 +174,8 @@ const TARGET_ROOT_INDEX = 2;
 
 let selectedRoot = null;
 let carriedPellet = null;
+/** True while the win overlay is up — blocks moves until Continue or Play again. */
+let winCelebrationActive = false;
 
 const roots = [
   [5,4,3,2,1],
@@ -162,16 +184,18 @@ const roots = [
 ];
 
 const pelletColors = [
-  "#8b6a4f",
-  "#9d7656",
-  "#ad8561",
-  "#bc9270",
-  "#d0a17c"
+  "#c9a882",
+  "#a67d52",
+  "#8b5a3a",
+  "#6a4028",
+  "#3d2618"
 ];
 
 canvas.addEventListener("click", handleClick);
 
 function handleClick(e) {
+  if (winCelebrationActive) return;
+
   const rect = canvas.getBoundingClientRect();
   const mouseX = e.clientX - rect.left;
 
@@ -212,29 +236,50 @@ function handleClick(e) {
 }
 
 function checkWin() {
-  if (
-    roots[1].length === 5 ||
-    roots[2].length === 5
-  ) {
-    message.style.display = "block";
+  if (winCelebrationActive) return;
+  if (roots[1].length !== 5 && roots[2].length !== 5) return;
 
-    message.innerHTML = `
-      <div>The owl pellets are safely sorted!</div>
+  winCelebrationActive = true;
 
-      <div style="
-        font-size: 28px;
-        margin-top: 18px;
-        color: #f2deb2;
-      ">
-        You earned a wooden boat.
-      </div>
+  message.style.display = "block";
 
-      <button onclick="restartGame()">
-        Play Again
-      </button>
-    `;
-    window.parent.postMessage("TYTO_COMPLETE", "*");
-  }
+  message.innerHTML = `
+    <div>The owl pellets are safely sorted!</div>
+
+    <div style="
+      font-size: 28px;
+      margin-top: 18px;
+      color: #f2deb2;
+    ">
+      You earned a wooden boat.
+    </div>
+
+    <div style="font-size:20px;margin-top:16px;max-width:90%;margin-left:auto;margin-right:auto;line-height:1.35;color:#e8dfc8">
+      Click <strong>Continue</strong> when you are ready to return to the story.
+    </div>
+
+    <div style="margin-top:20px">
+      <button type="button" id="tytoWinContinue">Continue</button>
+      <button type="button" id="tytoWinRestart" style="margin-left:12px;background:#3a5a40">Play again</button>
+    </div>
+  `;
+
+  document.getElementById("tytoWinContinue").addEventListener(
+    "click",
+    () => {
+      window.parent.postMessage("TYTO_COMPLETE", "*");
+    },
+    { once: true }
+  );
+
+  document.getElementById("tytoWinRestart").addEventListener(
+    "click",
+    () => {
+      message.style.display = "none";
+      restartGame();
+    },
+    { once: true }
+  );
 }
 
 function restartGame() {
@@ -244,9 +289,14 @@ function restartGame() {
 
   carriedPellet = null;
   selectedRoot = null;
+  winCelebrationActive = false;
 
   message.style.display = "none";
 }
+
+document.getElementById("resetTowerBtn").addEventListener("click", () => {
+  restartGame();
+});
 
 function drawBackground() {
   // forest sky
