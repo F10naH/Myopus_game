@@ -7,16 +7,16 @@ Main Narrative & Logic Script
 
 /* Backdrops — same layering as level 2 (photo under mood + vignette). */
 const BACKDROP_IMAGES = {
-  orchard: "images/orchard-main.jpg",
-  hare: "images/thrashinghare.jpg",
+  orchard: "images/dead_orchard.jpeg",
+  hare: "images/hare_trapped.jpg",
 };
 
 /** Only `orchard_entry` and `hare_approach` use photos; other scenes use gradient only. */
 const ORCHARD_BACKDROP_POSITION = "center 50%";
 const HARE_BACKDROP_POSITION = "center 50%";
 
-const ORCHARD_BACKDROP_ZOOM = "128%";
-const HARE_BACKDROP_ZOOM = "128%";
+const ORCHARD_BACKDROP_ZOOM = "80%";
+const HARE_BACKDROP_ZOOM = "70%";
 
 const ORCHARD_PHOTO_OPACITY = 0.88;
 const HARE_PHOTO_OPACITY = 0.88;
