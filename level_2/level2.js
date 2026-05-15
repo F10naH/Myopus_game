@@ -251,6 +251,30 @@ function renderScene() {
 }
 
 /**
+ * Wraps “golden moss” in a glowing span; skips matches already inside a <span> tag.
+ */
+function spanDepthAt(html, index) {
+  const slice = html.slice(0, index);
+  let depth = 0;
+  const re = /<\/?span\b[^>]*>/gi;
+  let m;
+  while ((m = re.exec(slice)) !== null) {
+    if (m[0].startsWith("</")) depth--;
+    else depth++;
+    if (depth < 0) depth = 0;
+  }
+  return depth;
+}
+
+function highlightGoldenMoss(html) {
+  if (!html || typeof html !== "string") return html;
+  return html.replace(/\bgolden\s+moss\b/gi, (match, offset) => {
+    if (spanDepthAt(html, offset) > 0) return match;
+    return `<span class="golden-moss">${match}</span>`;
+  });
+}
+
+/**
  * Strips shared leading indentation from story template literals so you can
  * indent blocks in source without changing how the text appears on screen.
  */
@@ -278,7 +302,7 @@ function showText(text, options = []) {
   const container = document.getElementById("adventureBox");
   if (!container) return;
 
-  const body = normalizeStoryText(text);
+  const body = highlightGoldenMoss(normalizeStoryText(text));
   let html = `<div class="story-text">${body}</div>`;
   options.forEach((opt, i) => {
     html += `<button type="button" data-opt-index="${i}">${opt.text}</button>`;

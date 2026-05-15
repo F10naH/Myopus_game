@@ -464,6 +464,28 @@ function renderScene() {
   }
 }
 
+/** Wraps “golden moss” in a glowing span; skips matches already inside a <span> tag. */
+function spanDepthAt(html, index) {
+  const slice = html.slice(0, index);
+  let depth = 0;
+  const re = /<\/?span\b[^>]*>/gi;
+  let m;
+  while ((m = re.exec(slice)) !== null) {
+    if (m[0].startsWith("</")) depth--;
+    else depth++;
+    if (depth < 0) depth = 0;
+  }
+  return depth;
+}
+
+function highlightGoldenMoss(html) {
+  if (!html || typeof html !== "string") return html;
+  return html.replace(/\bgolden\s+moss\b/gi, (match, offset) => {
+    if (spanDepthAt(html, offset) > 0) return match;
+    return `<span class="golden-moss">${match}</span>`;
+  });
+}
+
 function normalizeStoryText(raw) {
   if (!raw) return "";
   const lines = raw.replace(/\r\n/g, "\n").split("\n");
@@ -489,8 +511,8 @@ function showText(options = []) {
   if (!container) return;
 
   const title = LOC_TITLES[levelState.currentLocation] || "";
-  const body = normalizeStoryText(screenText);
-  
+  const body = highlightGoldenMoss(normalizeStoryText(screenText));
+
   let html = `<div class="location-title">${title}</div>`;
   html += `<div class="story-text">${body}</div>`;
   html += `<div class="button-container">`;
