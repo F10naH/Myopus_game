@@ -41,6 +41,30 @@ let levelState = {
   pathCleared: false, // Final Goal
 };
 
+let activePuzzleFinish = null;
+let activePuzzleMessageListener = null;
+
+function setSkipPuzzleButtonVisible(visible) {
+  const btn = document.getElementById("skipPuzzleTestBtn");
+  if (btn) btn.hidden = !visible;
+}
+
+function forceClosePuzzleIframe() {
+  if (activePuzzleMessageListener) {
+    window.removeEventListener("message", activePuzzleMessageListener);
+    activePuzzleMessageListener = null;
+  }
+  activePuzzleFinish = null;
+  setSkipPuzzleButtonVisible(false);
+  const frame = document.getElementById("gameFrame");
+  const storyPanel = document.getElementById("storyPanel");
+  if (frame) {
+    frame.style.display = "none";
+    frame.src = "about:blank";
+  }
+  if (storyPanel) storyPanel.style.display = "block";
+}
+
 function setScene(scene) {
   levelState.currentScene = scene;
   renderScene();
@@ -55,9 +79,11 @@ function renderScene() {
   switch (levelState.currentScene) {
     case "orchard_entry":
       showText(
-        `The lush whimsy of the forest fades. Before you lies a grid of silent, stunted trees. The ground is covered in "False Moss"—rotting burlap sacks[cite: 47, 48]. 
-        
-        In the center of the row, a Mountain Hare is trapped in a web of plastic bird netting. It is thrashing hysterically[cite: 49, 51].`,
+        `The lush whimsy of the deep forest dies at a invisible border, surrendered to a heavy, unnatural silence. Before you lies the Abandoned Orchard—a landscape ravished, hollowed out, and left entirely empty by human hands. Where moss once thrived, the ground is choked by the rot of "False Moss," a graveyard of decaying burlap sacks and unyielding plastic weed barriers. The trees here are not free; they stand as stunted, uniform sentinels forced into a rigid, geometric grid that chokes the chaotic beauty of the natural world.
+
+        In the dead center of this sterile row, the silence is broken by a desperate, frantic struggle. A Mountain Hare is pinned to the dirt, hopelessly entangled beneath a massive, discarded roll of plastic BIRD NETTING. It is thrashing hysterically, its paws catching in the synthetic threads of a trap originally engineered to protect the orchard's hoarded fruit. Now abandoned, the plastic has outlived its purpose, acting as a permanent, ghostly snare that has stolen the hare’s freedom. 
+
+        The heavy tangle of this iron-like mesh stretches across the entire row, completely blocking your path forward. To save your partner, you must find a way past this synthetic barrier.`,
         [
           {
             text: "Investigate the 'Yellow Snake' (Hose)",
@@ -76,108 +102,208 @@ function renderScene() {
       break;
 
     case "hose_inspect":
-      let hoseText = levelState.hoseConnected
-        ? "The hose is connected to the faucet. Water drips steadily."
-        : "A fragment of a dried-out, cracked garden hose lies in the dirt. It looks like the 'snake' the Hare mentioned";
+      let hoseText = "";
+      let hoseOptions = [];
 
-      let hoseOptions = levelState.hoseConnected
-        ? [
-            {
-              text: "Back to the Orchard",
-              action: () => setScene("orchard_entry"),
-            },
-          ]
-        : [
-            {
-              text: "Attempt to connect the hose (Placeholder)",
-              action: () => setScene("hose_game_start"),
-            },
-            { text: "Back", action: () => setScene("orchard_entry") },
-          ];
+      if (!levelState.hoseConnected) {
+        hoseText = `You step cautiously toward the base of the rusted iron tap protruding from the packed earth. There, half-buried in the dust and crumbling microplastics, lies a fragment of a dried-out, cracked garden hose. To your small eyes, it is a hollow, synthetic carcass—vibrant yellow but stiffened and split by seasons of neglect. 
+
+          This must be the 'snake' the Hare was screaming about in its delirium. Its rubber skin smells faintly of chemicals, ancient dust, and stagnant iron. It leads nowhere, completely severed from its source, a useless line of plastic cutting across the dead soil. Yet, if it could somehow be mended and tethered back to the iron faucet, it might hold the moisture needed to wake the orchard's sleeping sugars.`;
+
+        hoseOptions = [
+          {
+            text: "Attempt to connect the hose (Mini-game)",
+            action: () => setScene("hose_game_start"),
+          },
+          {
+            text: "Return to the Orchard Rows",
+            action: () => setScene("orchard_entry"),
+          },
+        ];
+      } else {
+        hoseText = `The 'Yellow Snake' has been wrestled into alignment, its cracked seams forced together and locked tightly onto the threads of the rusted iron tap. The transformation is immediate. 
+
+          A low, hollow hiss echoes through the rubber tubing as water surges from deep beneath the ground. At the puncture points, small, clear droplets swell and fall, sinking instantly into the parched earth with a soft, drinking sound. The hose is no longer a dead piece of litter; it has become an artificial artery, pulsing with life-giving moisture that creeps steadily down the grid toward the depression where the bitter fruit waits.`;
+
+        hoseOptions = [
+          {
+            text: "Back to the Orchard Rows",
+            action: () => setScene("orchard_entry"),
+          },
+        ];
+      }
 
       showText(hoseText, hoseOptions);
       break;
 
     case "hose_game_start":
-      showText(
-        "PHASE 1: You need to align the hose fragments to get water to the apple.",
-        [
-          {
-            text: "Fix the Hose (Simulate Win)",
-            action: () => {
-              levelState.hoseConnected = true;
-              setScene("hose_inspect");
-            },
-          },
-        ],
-      );
+      // Hide the dialogue box text, show the minigame iframe frame
+      const storyPanel = document.getElementById("storyPanel");
+      const frame = document.getElementById("gameFrame");
+
+      if (storyPanel && frame) {
+        storyPanel.style.display = "none";
+        frame.style.display = "block";
+        frame.src = "hose_puzzle.html"; // Load the grid puzzle file
+      }
+
+      let finished = false;
+      function finish() {
+        if (finished) return;
+        finished = true;
+        if (activePuzzleMessageListener === hoseMessageListener) {
+          window.removeEventListener("message", hoseMessageListener); //
+          activePuzzleMessageListener = null; //
+        }
+        activePuzzleFinish = null; //
+        setSkipPuzzleButtonVisible(false); //
+        frame.style.display = "none"; //
+        storyPanel.style.display = "block"; //
+        frame.src = "about:blank"; //
+
+        // Save progress state and redirect
+        levelState.hoseConnected = true; //
+        setScene("hose_inspect"); //
+      }
+
+      // Hook up an asynchronous listener to wait for the puzzle's message window
+      function hoseMessageListener(e) {
+        if (e.data === "HOSE_COMPLETE") {
+          //
+          finish();
+        }
+      }
+
+      activePuzzleMessageListener = hoseMessageListener; //
+      activePuzzleFinish = finish; //
+      setSkipPuzzleButtonVisible(true); //
+      window.addEventListener("message", hoseMessageListener); //
       break;
 
     case "apple_inspect":
-      let appleText = levelState.appleScented
-        ? "The apple is wet and smells dizzyingly sweet. The scent is potent."
-        : "A mushy, brown apple sits in a depression. It needs moisture to release its scent.";
-
+      let appleText = "";
       let appleOptions = [];
+
       if (!levelState.hoseConnected) {
-        appleText += "\nYou need a way to get water here first.";
-        appleOptions.push({
-          text: "Back",
-          action: () => setScene("orchard_entry"),
-        });
+        // Branch 1: No water, no progress
+        appleText = `You lean over the edge of a deep, collapsed crater in the rotting burlap. At the bottom sits a single, forgotten apple, half-buried in the dust. It is mushy, shriveled, and bruised a sickly dark brown—a bitter relic left behind when the humans abandoned this place. 
+
+          You sniff at it, but there is no comfort here. It smells only of dry rot, dust, and old wood. The sun has baked it dry, locking its sugars away. It desperately needs moisture if it is ever to release the potent, dizzying scent required to soothe the panicked Hare. 
+          
+          You look back toward the iron faucet. You need to find a way to route the water here first.`;
+
+        appleOptions = [
+          {
+            text: "Return to the Orchard Rows",
+            action: () => setScene("orchard_entry"),
+          },
+        ];
       } else if (!levelState.appleScented) {
-        appleOptions.push({
-          text: "Ferment the apple (Placeholder)",
-          action: () => setScene("apple_game_start"),
-        });
-        appleOptions.push({
-          text: "Back",
-          action: () => setScene("orchard_entry"),
-        });
+        // Branch 2: Water is flowing, ready for the mini-game
+        appleText = `The apple rests in its shallow dirt depression, but the world around it has changed. Clear, cold water from the newly mended hose is pooling at its base, slowly soaking through the leathery, wrinkled skin. 
+
+          As the moisture seeps deep into the bruised flesh, the fruit begins to swell. Tiny, pale bubbles of fermentation hiss and crackle at its surface, fighting against the dry decay. The air is thick with anticipation. The sugars are waking up, waiting for a precise, rhythmic touch to guide the fermentation process and unlock the true, potent depth of its hidden aroma.`;
+
+        appleOptions = [
+          {
+            text: "Ferment the apple (Mini-game)",
+            action: () => setScene("apple_game_start"),
+          },
+          {
+            text: "Return to the Orchard Rows",
+            action: () => setScene("orchard_entry"),
+          },
+        ];
       } else {
-        appleOptions.push({
-          text: "Back",
-          action: () => setScene("orchard_entry"),
-        });
+        // Branch 3: Mini-game complete, apple is fully aromatic
+        appleText = `You step back as a thick, invisible wave of scent rolls out from the depression, pooling heavily between the straight rows of trees. The apple is completely drenched, practically dissolving into a rich, dark mush under the steady rhythm of the water droplets.
+
+          It smells dizzyingly sweet, overwhelming your small nose with a potent, heavy fragrance of wild sugars, sharp cider, and intoxicating fermentation. The aroma is so thick it feels warm, cutting through the chemical stink of the old orchard. It is a powerful, hypnotic scent—exactly what you need to cut through the Hare's blind panic and soothe its breaking mind.`;
+
+        appleOptions = [
+          {
+            text: "Return to the Orchard Rows",
+            action: () => setScene("orchard_entry"),
+          },
+        ];
       }
 
       showText(appleText, appleOptions);
       break;
 
     case "apple_game_start":
-      showText(
-        "PHASE 2: The water is dripping. Manage the fermentation to create the perfect scent.",
-        [
-          {
-            text: "Complete Fermentation (Simulate Win)",
-            action: () => {
-              levelState.appleScented = true;
-              setScene("apple_inspect");
-            },
-          },
-        ],
-      );
+      // Pull structural reference layers out of the layout
+      const appleStoryPanel = document.getElementById("storyPanel");
+      const appleFrame = document.getElementById("gameFrame");
+
+      if (appleStoryPanel && appleFrame) {
+        appleStoryPanel.style.display = "none";
+        appleFrame.style.display = "block";
+        appleFrame.src = "apple_puzzle.html"; // Route into the rhythm canvas frame
+      }
+
+      let appleFinished = false;
+      function finishApplePuzzle() {
+        if (appleFinished) return;
+        appleFinished = true;
+
+        if (activePuzzleMessageListener === appleMessageListener) {
+          window.removeEventListener("message", appleMessageListener);
+          activePuzzleMessageListener = null;
+        }
+
+        activePuzzleFinish = null;
+        setSkipPuzzleButtonVisible(false); // Hide test button layer
+        appleFrame.style.display = "none";
+        appleStoryPanel.style.display = "block";
+        appleFrame.src = "about:blank";
+
+        // Mutate progress variables up and bounce redirect paths back
+        levelState.appleScented = true;
+        setScene("apple_inspect");
+      }
+
+      function appleMessageListener(e) {
+        if (e.data === "APPLE_COMPLETE") {
+          finishApplePuzzle();
+        }
+      }
+
+      // Bind local operations into global engine variables to enable the skip button
+      activePuzzleMessageListener = appleMessageListener;
+      activePuzzleFinish = finishApplePuzzle;
+      setSkipPuzzleButtonVisible(true); // Render the operational skip option
+
+      window.addEventListener("message", appleMessageListener);
       break;
 
     case "hare_approach":
       if (!levelState.appleScented) {
+        // Branch A: Hare is frantic, terrified, and warning of snakes
         showText(
-          `The Hare is "highkey tweaking"[cite: 57]. It kicks out in fear. You are too small to handle the recoil of its thrashing[cite: 66]. 
-          
-          HARE: "Stay back! The Spirit of the Orchard has sent the snakes for me!"`,
+          `You step carefully onto the rotting burlap, but the moment your paws rustle the material, the Mountain Hare erupts into a blind, hysterical frenzy. It is thrashing wildly, kicking out with powerful, desperate back legs. The heavy plastic mesh of the bird netting stretches and snaps back; you are simply too small to handle the violent recoil of its panic. You are forced to stay back.
+
+          The creature’s eyes are wide, glassy, and rolled back in terror. It stares blankly at the plastic threads pinning it down, completely blind to the reality of the human garbage that holds it.
+
+          HARE: "Stay back, small one! Back! The Spirit of the Orchard has finally come for me! It has woven a web of iron to punish my sins... and it has unleashed its demons! Beware the Yellow Snake sent down by the Spirit! I saw it writhing in the dirt, slithering through the rows to choke me... I was running from its venom when the web swallowed me whole! Go, before it wraps around you too!"
+
+          You realize you cannot examine the net or get any closer without being struck by its thrashing legs. To move forward and clear the path to the next area, you must find a way to quiet its racing mind and cut the synthetic threads.`,
           [
             {
-              text: "Retreat for now",
+              text: "Retreat to safety",
               action: () => setScene("orchard_entry"),
             },
           ],
         );
       } else if (!levelState.hareLethargic) {
+        // Branch B: Apple is fermented, attracting the Hare
         showText(
-          `The Hare smells the fermented apple you prepared. Its frantic kicking slows as it begins to sniff the air[cite: 69, 70].`,
+          `You return, carrying the heavy, intoxicating aroma of the fermented apple. As you draw near, the thick cloud of wild sugars and warm, sharp cider cuts through the stagnant chemical stink of the orchard grid. 
+
+          The Hare’s violent kicking abruptly stops. Its long ears twitch, and its nose ripples as it catches the potent, heavy fragrance drifting across the burlap sacks. The hysterical terror in its eyes softens, replaced by a sudden, hollow hunger. It stops fighting the plastic threads, entirely transfixed by the hypnotic scent of the waking sugars.`,
           [
             {
-              text: "Feed the apple to the Hare",
+              text: "Feed the fermented apple to the Hare",
               action: () => {
                 levelState.hareLethargic = true;
                 setScene("hare_approach");
@@ -186,11 +312,14 @@ function renderScene() {
           ],
         );
       } else {
+        // Branch C: Hare is fed and lethargic, ready for rescue
         showText(
-          `The Hare is now lethargic and sleepy[cite: 70]. It is safe to use the glass shard from the broken jar[cite: 61, 71].`,
+          `The Hare has devoured the mushy fruit, and the heavy fermentation has done its work. The frantic, erratic movements have given way to a deep, heavy lethargy. Its eyes are half-closed, its breathing slow and rhythmic against the damp earth.
+
+          It is finally safe to approach. You pull the sharp glass shard from your pack—the jagged relic from the broken jar. The plastic bird netting is tight and unyielding, but with the animal resting quietly, you can position the blade without the risk of a crushing kick. It is time to slice through the 'Spirit's web.'`,
           [
             {
-              text: "Saw through the netting (Placeholder)",
+              text: "Saw through the netting (Mini-game)",
               action: () => setScene("hare_game_start"),
             },
           ],
@@ -198,24 +327,76 @@ function renderScene() {
       }
       break;
 
-    case "hare_game_start":
+    case "level_complete":
+      // Concluding dialogue block containing the full lore payoff
       showText(
-        "PHASE 3: Use the shard to saw through the plastic threads[cite: 72].",
+        `With a sharp, plastic snap, the final structural thread severs. The heavy roll of bird netting slumps away into the dust, completely uncoiling from the Hare's back. The path forward is finally clear.
+
+        The Hare stirs, shaking the remaining synthetic fibers from its fur. It stands up, looking at its paws, then down at you with a profound, quiet gratitude.
+
+        HARE: "The iron web... it is broken. You fought the Spirit's curse and won... No, listen to me. I see it clearly now. When the humans still tended to these straight rows, I would sneak beneath the canopy and steal the bitter, fallen fruit to feed my family. It was wrong, but we were hungry. But recently, the humans vanished. The orchard was abandoned. The fruit withered, and there was never enough to fill our bellies.
+
+        I thought the Spirit of the Orchard was angry with me. I figured because I was taking what wasn't mine, the Spirit had cursed this entire place, slowing down all the growth and sending the snakes and the nets to punish my thievery. But you... you used the snake to bring life, and you used the fruit to bring peace. You have saved my life, small adventurer.
+
+        I have learned my lesson about taking from these dead human orchards. But hearing your story—knowing how far you have traveled into the wide, changing world—has inspired me. If a creature as small as a Myopus can brave these hollow lands for their partner, then I can find the courage to do some adventuring of my own. I will seek out new, wilder lands to secure clean food for my family. Thank you."`,
         [
           {
-            text: "Finish Sawing (Simulate Win)",
-            action: () => {
-              levelState.pathCleared = true;
-              setScene("level_complete");
-            },
+            text: "Move toward the Village",
+            action: () => alert("End of Level 3"),
           },
         ],
       );
       break;
 
+    case "hare_game_start":
+      // Pull document framework visual view hooks out
+      const hareStoryPanel = document.getElementById("storyPanel");
+      const hareFrame = document.getElementById("gameFrame");
+
+      if (hareStoryPanel && hareFrame) {
+        hareStoryPanel.style.display = "none";
+        hareFrame.style.display = "block";
+        hareFrame.src = "hare_puzzle.html"; // Load the sawing execution script canvas view
+      }
+
+      let hareFinished = false;
+      function finishHarePuzzle() {
+        if (hareFinished) return;
+        hareFinished = true;
+
+        if (activePuzzleMessageListener === hareMessageListener) {
+          window.removeEventListener("message", hareMessageListener);
+          activePuzzleMessageListener = null;
+        }
+
+        activePuzzleFinish = null;
+        setSkipPuzzleButtonVisible(false); // Clear standard test buttons away
+        hareFrame.style.display = "none";
+        hareStoryPanel.style.display = "block";
+        hareFrame.src = "about:blank";
+
+        // Push level progress markers upward
+        levelState.pathCleared = true;
+        setScene("level_complete");
+      }
+
+      function hareMessageListener(e) {
+        if (e.data === "HARE_COMPLETE") {
+          finishHarePuzzle();
+        }
+      }
+
+      // Track active parameters globally to integrate with the layout's skip puzzle buttons
+      activePuzzleMessageListener = hareMessageListener;
+      activePuzzleFinish = finishHarePuzzle;
+      setSkipPuzzleButtonVisible(true); // Mount testing shortcuts seamlessly
+
+      window.addEventListener("message", hareMessageListener);
+      break;
+
     case "level_complete":
       showText(
-        `The Hare is free! It explains it was only stealing fruit for its family[cite: 73, 74]. The path is clear.`,
+        `The Hare is free! It explains it was only stealing fruit for its family. The path is clear.`,
         [
           {
             text: "Move toward the Village",
@@ -355,6 +536,10 @@ function showText(text, options = []) {
     btn.addEventListener("click", () => options[idx].action());
   });
 }
+
+document.getElementById("skipPuzzleTestBtn")?.addEventListener("click", () => {
+  if (typeof activePuzzleFinish === "function") activePuzzleFinish();
+});
 
 // Initial Call
 setScene("orchard_entry");

@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fermentation Rhythms</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-family: Georgia, serif;
+        background: #181410;
+        color: #e8ebe4;
+        overflow: hidden;
+      }
+      #puzzle-container {
+        text-align: center;
+        background: rgba(30, 24, 20, 0.9);
+        padding: 20px;
+        border-radius: 12px;
+        border: 1px solid #7a665a;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+      }
+      h2 {
+        margin-top: 0;
+        color: #f4e8c8;
+        font-size: 22px;
+      }
+      p {
+        font-size: 14px;
+        margin-bottom: 15px;
+        color: #bcaeaf;
+      }
+      canvas {
+        display: block;
+        margin: 0 auto;
+        background: #2a221b;
+        border: 2px solid #54433d;
+        border-radius: 8px;
+        cursor: pointer;
+      }
+      #progress-bar-container {
+        width: 400px;
+        height: 20px;
+        background: #1a1512;
+        border: 1px solid #54433d;
+        border-radius: 10px;
+        margin: 15px auto 0;
+        overflow: hidden;
+      }
+      #progress-bar {
+        width: 0%;
+        height: 100%;
+        background: #bc9270;
+        transition: width 0.1s ease-out;
+      }
+      #win-message {
+        position: absolute;
+        inset: 0;
+        background: rgba(26, 20, 16, 0.96);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 10;
+        display: none;
+      }
+      button {
+        padding: 12px 24px;
+        font-size: 16px;
+        background: #5f4428;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        margin-top: 15px;
+      }
+      button:hover {
+        background: #735332;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="puzzle-container">
+      <h2>Fermentation Rhythms</h2>
+      <p>
+        Click or press SPACEBAR when a water droplet hits the glowing collection
+        ring!
+      </p>
+      <canvas id="gameCanvas" width="400" height="400"></canvas>
+      <div id="progress-bar-container">
+        <div id="progress-bar"></div>
+      </div>
+    </div>
+
+    <div id="win-message">
+      <h2 style="font-size: 28px; color: #f4e8c8">Aromatic Scent Released!</h2>
+      <p>The apple is wet and smells dizzyingly sweet. The scent is potent.</p>
+      <button onclick="completePuzzle()">Return to Orchard</button>
+    </div>
+
+    <script>
+      const canvas = document.getElementById("gameCanvas");
+      const ctx = canvas.getContext("2d");
+      const progressBar = document.getElementById("progress-bar");
+
+      let progress = 0;
+      let droplets = [];
+      let dropTimer = 0;
+      let nextDropTime = 60; // Spawn first droplet quickly
+
+      // Target Zone Configuration
+      const targetY = 320;
+      const targetRadius = 25;
+
+      function spawnDroplet() {
+        droplets.push({
+          x: 200,
+          y: 50,
+          speed: 3.5 + Math.random() * 1.5,
+        });
+        nextDropTime = 50 + Math.random() * 60; // Variable drop timing
+        dropTimer = 0;
+      }
+
+      function updateAndDraw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Draw Hose/Spout Head
+        ctx.fillStyle = "#e1b12c";
+        ctx.fillRect(185, 0, 30, 50);
+
+        // Draw Rotten Apple Base
+        ctx.fillStyle = "#8a5328";
+        ctx.beginPath();
+        ctx.arc(200, 330, 45, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Draw Target Zone Ring (Glowing Sweet Spot)
+        ctx.strokeStyle = "rgba(244, 232, 200, 0.6)";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(200, targetY, targetRadius, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Handle Droplet Logic
+        dropTimer++;
+        if (dropTimer >= nextDropTime) {
+          spawnDroplet();
+        }
+
+        for (let i = droplets.length - 1; i >= 0; i--) {
+          let d = droplets[i];
+          d.y += d.speed;
+
+          // Draw Water Droplet
+          ctx.fillStyle = "#74b9ff";
+          ctx.beginPath();
+          ctx.arc(d.x, d.y, 6, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Clean up drops that miss completely
+          if (d.y > canvas.height) {
+            droplets.splice(i, 1);
+          }
+        }
+
+        // Draw feedback instructions dynamically on canvas if needed
+        if (progress < 100) {
+          requestAnimationFrame(updateAndDraw);
+        }
+      }
+
+      function handleInput(e) {
+        if (e.type === "keydown" && e.code !== "Space") return;
+        if (e.type === "keydown") e.preventDefault(); // Prevent page scrolling
+
+        let hitSuccess = false;
+
+        for (let i = droplets.length - 1; i >= 0; i--) {
+          let distance = Math.abs(droplets[i].y - targetY);
+          if (distance <= targetRadius) {
+            hitSuccess = true;
+            droplets.splice(i, 1); // Consume droplet
+            break;
+          }
+        }
+
+        if (hitSuccess) {
+          progress = Math.min(100, progress + 20); // 5 successful hits to win
+          progressBar.style.style = "width: 0%"; // Force reflow fix
+          progressBar.style.width = progress + "%";
+
+          // Quick flash target ring indicator
+          ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
+          ctx.beginPath();
+          ctx.arc(200, targetY, targetRadius + 10, 0, Math.PI * 2);
+          ctx.fill();
+
+          if (progress >= 100) {
+            document.getElementById("win-message").style.display = "flex";
+          }
+        }
+      }
+
+      window.addEventListener("keydown", handleInput);
+      canvas.addEventListener("mousedown", handleInput);
+
+      function completePuzzle() {
+        window.parent.postMessage("APPLE_COMPLETE", "*");
+      }
+
+      updateAndDraw();
+    </script>
+  </body>
+</html>

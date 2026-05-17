@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>The Snake's Alignment - Fixed</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-family: Georgia, serif;
+        background: #121a16;
+        color: #e8ebe4;
+        overflow: hidden;
+        user-select: none;
+      }
+      #puzzle-container {
+        text-align: center;
+        background: rgba(20, 30, 24, 0.85);
+        padding: 25px;
+        border-radius: 12px;
+        border: 1px solid #5a7a66;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+      }
+      h2 {
+        margin-top: 0;
+        color: #f4e8c8;
+        font-size: 22px;
+      }
+      p {
+        font-size: 14px;
+        margin-bottom: 20px;
+        color: #adbcaf;
+      }
+
+      #grid {
+        display: grid;
+        grid-template-columns: repeat(3, 100px);
+        grid-template-rows: repeat(3, 100px);
+        gap: 8px;
+        margin: 0 auto;
+        width: 316px;
+      }
+      .tile {
+        width: 100px;
+        height: 100px;
+        background: #233428;
+        border: 2px solid #3d5443;
+        border-radius: 8px;
+        cursor: pointer;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        position: relative;
+        transition:
+          background 0.2s,
+          transform 0.1s ease-out;
+      }
+      .tile:hover:not(.locked) {
+        background: #2d4233;
+      }
+
+      .tile.locked {
+        background: #19251d;
+        border-color: #27382d;
+        cursor: not-allowed;
+      }
+      .tile.locked::after {
+        content: "🔒";
+        position: absolute;
+        top: 5px;
+        left: 5px;
+        font-size: 10px;
+        opacity: 0.4;
+      }
+
+      .hose {
+        position: absolute;
+        background: #e1b12c;
+        box-shadow: inset 0 0 8px #b38600;
+        z-index: 2;
+      }
+
+      /* I-Piece (Straight Line) */
+      .pipe-I {
+        width: 100%;
+        height: 20px;
+      }
+
+      /* L-Piece (Elbow Joint) */
+      .pipe-L-1 {
+        width: 60%;
+        height: 20px;
+        left: 0;
+        top: 40px;
+      }
+      .pipe-L-2 {
+        width: 20px;
+        height: 60%;
+        left: 40px;
+        top: 40px;
+      }
+
+      /* T-Piece (3-Way Junction) */
+      .pipe-T-main {
+        width: 100%;
+        height: 20px;
+        left: 0;
+        top: 40px;
+      }
+      .pipe-T-branch {
+        width: 20px;
+        height: 40%;
+        left: 40px;
+        top: 0;
+      } /* Branch points up at angle 0 */
+
+      #win-message {
+        position: absolute;
+        inset: 0;
+        background: rgba(18, 26, 22, 0.95);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 10;
+        display: none;
+      }
+      button {
+        padding: 12px 24px;
+        font-size: 16px;
+        background: #5f4428;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        margin-top: 15px;
+      }
+      button:hover {
+        background: #735332;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="puzzle-container">
+      <h2>Align the Orchard Pipeline</h2>
+      <p>
+        Click the tiles to route the water flow. The entry and exit joints are
+        locked solid.
+      </p>
+
+      <div id="grid"></div>
+    </div>
+
+    <div id="win-message">
+      <h2 style="font-size: 28px">Water Circuit Sealed!</h2>
+      <p>
+        The garden hose feeds directly into the apple container. Fermentation
+        can begin.
+      </p>
+      <button onclick="completePuzzle()">Return to Orchard</button>
+    </div>
+
+    <script>
+      // Corrected puzzle arrangement based exactly on your layout design drawing
+      // angle representation: 0 = 0°, 1 = 90°, 2 = 180°, 3 = 270°
+      const tilesData = [
+        { type: "L", angle: 0, locked: true }, // (0,0) Row 0, Col 0: Locked entry (Right/Down)
+        { type: "L", angle: 0, locked: false }, // (1,0) Row 0, Col 1: Standard Elbow
+        { type: "L", angle: 2, locked: false }, // (2,0) Row 0, Col 2: Standard Elbow
+        { type: "T", angle: 0, locked: false }, // (0,1) Row 1, Col 0: T-Junction (3-sides)
+        { type: "L", angle: 3, locked: false }, // (1,1) Row 1, Col 1: Standard Elbow
+        { type: "I", angle: 0, locked: false }, // (2,1) Row 1, Col 2: Straight Vertical/Horizontal
+        { type: "L", angle: 1, locked: false }, // (0,2) Row 2, Col 0: Standard Elbow
+        { type: "I", angle: 1, locked: false }, // (1,2) Row 2, Col 1: Straight Horizontal/Vertical
+        { type: "T", angle: 3, locked: true }, // (2,2) Row 2, Col 2: Locked exit T-Junction
+      ];
+
+      // Precise solution checks matching the yellow loop sketch path
+      function checkWin() {
+        const isWon = tilesData.every((tile, idx) => {
+          // Static fixed points check
+          if (idx === 0) return tile.angle === 0; // Fixed Top-Left (Right/Down)
+          if (idx === 8) return tile.angle === 3; // Fixed Bottom-Right T-piece
+
+          switch (idx) {
+            case 1:
+              return tile.angle === 2; // Row 0, Col 1: L-piece opening Left & Down
+            case 2:
+              return tile.angle === 1; // Row 0, Col 2: L-piece opening Left & Down
+            case 3:
+              return tile.angle === 1; // Row 1, Col 0: T-piece opening Up, Right, Down
+            case 4:
+              return tile.angle === 1; // Row 1, Col 1: L-piece opening Left & Up
+            case 5:
+              return tile.angle === 1 || tile.angle === 3; // Row 1, Col 2: Straight Vertical
+            case 6:
+              return tile.angle === 0; // Row 2, Col 0: L-piece opening Right & Up
+            case 7:
+              return tile.angle === 0 || tile.angle === 2; // Row 2, Col 1: Straight Horizontal
+            default:
+              return false;
+          }
+        });
+
+        if (isWon) {
+          document.getElementById("win-message").style.display = "flex";
+        }
+      }
+      const gridContainer = document.getElementById("grid");
+
+      function createGrid() {
+        tilesData.forEach((tile, index) => {
+          const tileDiv = document.createElement("div");
+          tileDiv.className = "tile" + (tile.locked ? " locked" : "");
+          tileDiv.style.transform = `rotate(${tile.angle * 90}deg)`;
+
+          if (tile.type === "I") {
+            const p = document.createElement("div");
+            p.className = "hose pipe-I";
+            tileDiv.appendChild(p);
+          } else if (tile.type === "L") {
+            const p1 = document.createElement("div");
+            p1.className = "hose pipe-L-1";
+            const p2 = document.createElement("div");
+            p2.className = "hose pipe-L-2";
+            tileDiv.appendChild(p1);
+            tileDiv.appendChild(p2);
+          } else if (tile.type === "T") {
+            // Constructs a T-junction shape
+            const p1 = document.createElement("div");
+            p1.className = "hose pipe-T-main";
+            const p2 = document.createElement("div");
+            p2.className = "hose pipe-T-branch";
+            tileDiv.appendChild(p1);
+            tileDiv.appendChild(p2);
+          }
+
+          if (!tile.locked) {
+            tileDiv.addEventListener("click", () => {
+              tile.angle = (tile.angle + 1) % 4;
+              tileDiv.style.transform = `rotate(${tile.angle * 90}deg)`;
+              checkWin();
+            });
+          }
+
+          gridContainer.appendChild(tileDiv);
+        });
+      }
+
+      function completePuzzle() {
+        window.parent.postMessage("HOSE_COMPLETE", "*");
+      }
+
+      createGrid();
+      checkWin();
+    </script>
+  </body>
+</html>

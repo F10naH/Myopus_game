@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sawing the Netting</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-family: Georgia, serif;
+        background: #0d0b09;
+        color: #e8ebe4;
+        overflow: hidden;
+        user-select: none;
+      }
+      #puzzle-container {
+        text-align: center;
+        background: rgba(22, 19, 16, 0.95);
+        padding: 25px;
+        border-radius: 12px;
+        border: 1px solid #6a5550;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8);
+        width: 450px;
+      }
+      h2 {
+        margin-top: 0;
+        color: #f4e8c8;
+        font-size: 22px;
+      }
+      p {
+        font-size: 14px;
+        margin-bottom: 20px;
+        color: #bcaeaf;
+      }
+
+      #canvas-container {
+        position: relative;
+        width: 400px;
+        height: 250px;
+        margin: 0 auto;
+      }
+      canvas {
+        background: #191410;
+        border: 2px solid #4a3b37;
+        border-radius: 8px;
+        cursor: ew-resize;
+      }
+
+      .meter-label {
+        font-size: 12px;
+        text-align: left;
+        margin: 10px auto 2px;
+        width: 400px;
+        color: #d0c2b2;
+      }
+      .meter-container {
+        width: 400px;
+        height: 16px;
+        background: #120e0c;
+        border: 1px solid #4a3b37;
+        border-radius: 8px;
+        margin: 0 auto 10px;
+        overflow: hidden;
+      }
+      #progress-bar {
+        width: 0%;
+        height: 100%;
+        background: #5a7a66;
+        transition: width 0.1s ease-out;
+      }
+      #tension-bar {
+        width: 0%;
+        height: 100%;
+        background: #cc4444;
+      }
+
+      #win-message {
+        position: absolute;
+        inset: 0;
+        background: rgba(18, 14, 12, 0.98);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 10;
+        display: none;
+      }
+      button {
+        padding: 12px 24px;
+        font-size: 16px;
+        background: #5f4428;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        margin-top: 15px;
+      }
+      button:hover {
+        background: #735332;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="puzzle-container">
+      <h2>Sever the Threads</h2>
+      <p>
+        Click and drag back-and-forth along the dashed line to saw the net.
+        Don't saw too fast or your tool will slip!
+      </p>
+
+      <div id="canvas-container">
+        <canvas id="sawCanvas" width="400" height="250"></canvas>
+      </div>
+
+      <div class="meter-label">Sawing Progress:</div>
+      <div class="meter-container">
+        <div id="progress-bar"></div>
+      </div>
+
+      <div class="meter-label">Blade Tension / Heat:</div>
+      <div class="meter-container">
+        <div id="tension-bar"></div>
+      </div>
+    </div>
+
+    <div id="win-message">
+      <h2 style="font-size: 26px; color: #f4e8c8">The Netting Snaps!</h2>
+      <p>
+        The dull glass shard finally severs the last structural binding knot.
+      </p>
+      <button onclick="completePuzzle()">Free the Hare</button>
+    </div>
+
+    <script>
+      const canvas = document.getElementById("sawCanvas");
+      const ctx = canvas.getContext("2d");
+      const progressBar = document.getElementById("progress-bar");
+      const tensionBar = document.getElementById("tension-bar");
+
+      let progress = 0;
+      let tension = 0;
+      let isDragging = false;
+      let lastX = 0;
+
+      // Sawing target parameters
+      const lineY = 125;
+      const minX = 80;
+      const maxX = 320;
+
+      function drawScene() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Draw background plastic mesh lines (The Netting)
+        ctx.strokeStyle = "rgba(90, 110, 125, 0.4)";
+        ctx.lineWidth = 2;
+        for (let i = 0; i < canvas.width; i += 40) {
+          ctx.beginPath();
+          ctx.moveTo(i, 0);
+          ctx.lineTo(i, canvas.height);
+          ctx.stroke();
+        }
+        for (let j = 0; j < canvas.height; j += 40) {
+          ctx.beginPath();
+          ctx.moveTo(0, j);
+          ctx.lineTo(canvas.width, j);
+          ctx.stroke();
+        }
+
+        // Draw target sawing thread line (Highlighted thick blue mesh strand)
+        ctx.strokeStyle = progress >= 100 ? "rgba(0,0,0,0)" : "#4a7c59";
+        ctx.lineWidth = 6;
+        ctx.beginPath();
+        ctx.moveTo(minX, lineY);
+        ctx.lineTo(maxX, lineY);
+        ctx.stroke();
+
+        // Draw motion track helper (Dashed UI line)
+        ctx.strokeStyle = "#f4e8c8";
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6, 6]);
+        ctx.beginPath();
+        ctx.moveTo(minX, lineY);
+        ctx.lineTo(maxX, lineY);
+        ctx.stroke();
+        ctx.setLineDash([]); // Reset
+
+        // Draw Shard Blade Handle/Indicator
+        if (isDragging && progress < 100) {
+          ctx.fillStyle = "#74b9ff";
+          ctx.beginPath();
+          ctx.arc(lastX, lineY, 8, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      function handleStart(e) {
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = (e.clientX || e.touches[0].clientX) - rect.left;
+        const mouseY = (e.clientY || e.touches[0].clientY) - rect.top;
+
+        // Allow grabbing anywhere near the horizontal sawing plane
+        if (
+          Math.abs(mouseY - lineY) < 40 &&
+          mouseX >= minX - 20 &&
+          mouseX <= maxX + 20
+        ) {
+          isDragging = true;
+          lastX = Math.max(minX, Math.min(mouseX, maxX));
+        }
+      }
+
+      function handleMove(e) {
+        if (!isDragging || progress >= 100) return;
+
+        const rect = canvas.getBoundingClientRect();
+        const mouseX =
+          (e.clientX || (e.touches && e.touches[0].clientX)) - rect.left;
+        const currentX = Math.max(minX, Math.min(mouseX, maxX));
+
+        // Compute lateral displacement speed (Velocity)
+        let deltaX = Math.abs(currentX - lastX);
+
+        if (deltaX > 0) {
+          // If pulling too quickly, spike tool tension exponentially
+          if (deltaX > 18) {
+            tension = Math.min(100, tension + deltaX * 0.8);
+          } else {
+            // Normal pacing builds clean progress cycles
+            progress = Math.min(100, progress + deltaX * 0.15);
+            progressBar.style.width = progress + "%";
+          }
+
+          lastX = currentX;
+        }
+
+        // Handle high-velocity failure slip conditions
+        if (tension >= 100) {
+          isDragging = false;
+          tension = 0;
+          progress = Math.max(0, progress - 15); // Structural penalty step
+          progressBar.style.width = progress + "%";
+          alert(
+            "The dull shard slipped out of your wet grip! Saw with a steady rhythm.",
+          );
+        }
+
+        tensionBar.style.width = tension + "%";
+        drawScene();
+      }
+
+      function handleEnd() {
+        isDragging = false;
+        if (progress >= 100) {
+          document.getElementById("win-message").style.display = "flex";
+        }
+      }
+
+      // Passive cool-down loop calculations
+      setInterval(() => {
+        if (tension > 0) {
+          tension = Math.max(0, tension - 3);
+          tensionBar.style.width = tension + "%";
+        }
+      }, 50);
+
+      canvas.addEventListener("mousedown", handleStart);
+      window.addEventListener("mousemove", handleMove);
+      window.addEventListener("mouseup", handleEnd);
+
+      canvas.addEventListener("touchstart", handleStart);
+      window.addEventListener("touchmove", handleMove);
+      window.addEventListener("touchend", handleEnd);
+
+      function completePuzzle() {
+        window.parent.postMessage("HARE_COMPLETE", "*");
+      }
+
+      drawScene();
+    </script>
+  </body>
+</html>
