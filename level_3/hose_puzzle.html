@@ -18,6 +18,7 @@
         user-select: none;
       }
       #puzzle-container {
+        position: relative;
         text-align: center;
         background: rgba(20, 30, 24, 0.85);
         padding: 25px;
@@ -55,9 +56,7 @@
         justify-content: center;
         align-items: center;
         position: relative;
-        transition:
-          background 0.2s,
-          transform 0.1s ease-out;
+        transition: background 0.2s;
       }
       .tile:hover:not(.locked) {
         background: #2d4233;
@@ -121,13 +120,17 @@
       #win-message {
         position: absolute;
         inset: 0;
-        background: rgba(18, 26, 22, 0.95);
-        display: flex;
+        border-radius: 12px;
+        background: rgba(18, 26, 22, 0.96);
         flex-direction: column;
         justify-content: center;
         align-items: center;
         z-index: 10;
         display: none;
+        padding: 1.5rem;
+      }
+      #win-message.is-visible {
+        display: flex;
       }
       button {
         padding: 12px 24px;
@@ -153,15 +156,19 @@
       </p>
 
       <div id="grid"></div>
-    </div>
 
-    <div id="win-message">
-      <h2 style="font-size: 28px">Water Circuit Sealed!</h2>
-      <p>
-        The garden hose feeds directly into the apple container. Fermentation
-        can begin.
-      </p>
-      <button onclick="completePuzzle()">Return to Orchard</button>
+      <div id="win-message">
+        <h2 style="font-size: 28px">Water Circuit Sealed!</h2>
+        <p>
+          The garden hose feeds directly into the apple container. Fermentation
+          can begin.
+        </p>
+        <p style="font-size: 14px; color: #adbcaf">
+          Click <strong>Continue</strong> when you are ready to return to the
+          story.
+        </p>
+        <button type="button" id="hoseWinContinue">Continue</button>
+      </div>
     </div>
 
     <script>
@@ -179,36 +186,96 @@
         { type: "T", angle: 3, locked: true }, // (2,2) Row 2, Col 2: Locked exit T-Junction
       ];
 
-      // Precise solution checks matching the yellow loop sketch path
-      function checkWin() {
-        const isWon = tilesData.every((tile, idx) => {
-          // Static fixed points check
-          if (idx === 0) return tile.angle === 0; // Fixed Top-Left (Right/Down)
-          if (idx === 8) return tile.angle === 3; // Fixed Bottom-Right T-piece
+      let winShown = false;
 
+      // 0=N, 1=E, 2=S, 3=W — connections at angle 0, then rotated with the tile
+      function getConnections(type, angle, clockwise = true) {
+        let base;
+        if (type === "I") base = [1, 3];
+        else if (type === "L") base = [1, 2];
+        else base = [0, 1, 3];
+        return base.map((d) =>
+          clockwise ? (d + angle) % 4 : (d - angle + 4) % 4,
+        );
+      }
+
+      function pathConnectedWith(clockwise) {
+        const visited = new Set([0]);
+        const queue = [0];
+
+        while (queue.length) {
+          const idx = queue.shift();
+          if (idx === 8) return true;
+
+          const conns = getConnections(
+            tilesData[idx].type,
+            tilesData[idx].angle,
+            clockwise,
+          );
+          const row = Math.floor(idx / 3);
+          const col = idx % 3;
+          const neighbors = [
+            [row > 0 ? idx - 3 : -1, 0, 2],
+            [col < 2 ? idx + 1 : -1, 1, 3],
+            [row < 2 ? idx + 3 : -1, 2, 0],
+            [col > 0 ? idx - 1 : -1, 3, 1],
+          ];
+
+          for (const [ni, dir, opposite] of neighbors) {
+            if (ni < 0 || visited.has(ni)) continue;
+            if (!conns.includes(dir)) continue;
+            const nconns = getConnections(
+              tilesData[ni].type,
+              tilesData[ni].angle,
+              clockwise,
+            );
+            if (!nconns.includes(opposite)) continue;
+            visited.add(ni);
+            queue.push(ni);
+          }
+        }
+        return false;
+      }
+
+      function isPathConnected() {
+        return pathConnectedWith(true) || pathConnectedWith(false);
+      }
+
+      /** Matches the layout sketch / yellow-loop solution (four rotation variants). */
+      function isSketchSolution() {
+        return tilesData.every((tile, idx) => {
+          if (idx === 0) return tile.angle === 0;
+          if (idx === 8) return tile.angle === 3;
           switch (idx) {
             case 1:
-              return tile.angle === 2; // Row 0, Col 1: L-piece opening Left & Down
+              return tile.angle === 2;
             case 2:
-              return tile.angle === 1; // Row 0, Col 2: L-piece opening Left & Down
+              return tile.angle === 1;
             case 3:
-              return tile.angle === 1; // Row 1, Col 0: T-piece opening Up, Right, Down
+              return tile.angle === 1;
             case 4:
-              return tile.angle === 1; // Row 1, Col 1: L-piece opening Left & Up
+              return tile.angle === 1;
             case 5:
-              return tile.angle === 1 || tile.angle === 3; // Row 1, Col 2: Straight Vertical
+              return tile.angle === 1 || tile.angle === 3;
             case 6:
-              return tile.angle === 0; // Row 2, Col 0: L-piece opening Right & Up
+              return tile.angle === 0;
             case 7:
-              return tile.angle === 0 || tile.angle === 2; // Row 2, Col 1: Straight Horizontal
+              return tile.angle === 0 || tile.angle === 2;
             default:
               return false;
           }
         });
+      }
 
-        if (isWon) {
-          document.getElementById("win-message").style.display = "flex";
-        }
+      function showWinScreen() {
+        if (winShown) return;
+        winShown = true;
+        document.getElementById("win-message").classList.add("is-visible");
+      }
+
+      function checkWin() {
+        if (winShown) return;
+        if (isPathConnected() || isSketchSolution()) showWinScreen();
       }
       const gridContainer = document.getElementById("grid");
 
@@ -241,6 +308,11 @@
 
           if (!tile.locked) {
             tileDiv.addEventListener("click", () => {
+              if (winShown) return;
+              // Win may already be satisfied before this click rotates a tile
+              checkWin();
+              if (winShown) return;
+
               tile.angle = (tile.angle + 1) % 4;
               tileDiv.style.transform = `rotate(${tile.angle * 90}deg)`;
               checkWin();
@@ -251,9 +323,13 @@
         });
       }
 
-      function completePuzzle() {
-        window.parent.postMessage("HOSE_COMPLETE", "*");
-      }
+      document.getElementById("hoseWinContinue").addEventListener(
+        "click",
+        () => {
+          window.parent.postMessage("HOSE_COMPLETE", "*");
+        },
+        { once: true },
+      );
 
       createGrid();
       checkWin();

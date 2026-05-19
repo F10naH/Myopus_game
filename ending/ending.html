@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Epilogue — The Village</title>
+  <style>
+    * { box-sizing: border-box; }
+    :root {
+      --scene-bg-image: url("parking_lot.jpg");
+      --scene-img-position: center center;
+      --scene-img-size: 90%;
+      --scene-edge-vignette: radial-gradient(
+        ellipse 78% 70% at 50% 46%,
+        rgba(0, 0, 0, 0) 38%,
+        rgba(5, 8, 12, 0.38) 68%,
+        rgba(2, 4, 8, 0.88) 100%
+      );
+      --scene-bg-gradient: linear-gradient(
+        180deg,
+        rgba(6, 14, 22, 0.82) 0%,
+        rgba(10, 22, 30, 0.72) 42%,
+        rgba(4, 10, 16, 0.92) 100%
+      );
+      --scene-photo-opacity: 1.0;
+      --scene-photo-fade-duration: 2s;
+    }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      position: relative;
+      background: #121a16;
+      color: #e8ebe4;
+      font-family: Georgia, "Times New Roman", serif;
+    }
+    #sceneBackdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      background-color: #121a16;
+    }
+    .scene-backdrop-mood {
+      position: absolute;
+      inset: 0;
+    }
+    .scene-backdrop-mood--gold {
+      background: linear-gradient(
+        165deg,
+        #4a3d1a 0%,
+        #8a7340 38%,
+        #c9a84a 62%,
+        #6b5a28 100%
+      );
+    }
+    .scene-backdrop-mood--dark {
+      background: linear-gradient(
+        165deg,
+        #1c1f1e 0%,
+        #141a18 45%,
+        #121a16 100%
+      );
+      opacity: 0;
+      transition: opacity 2s ease-in-out;
+    }
+    .scene-backdrop-photo {
+      position: absolute;
+      inset: 0;
+      background-image: var(--scene-bg-image);
+      background-size: var(--scene-img-size);
+      background-position: var(--scene-img-position);
+      background-repeat: no-repeat;
+      opacity: 0;
+      transition: opacity var(--scene-photo-fade-duration) ease-in-out;
+    }
+    .scene-backdrop-photo.is-visible {
+      opacity: var(--scene-photo-opacity);
+    }
+    .scene-backdrop-overlays {
+      position: absolute;
+      inset: 0;
+      background-size: cover, cover;
+      background-position: center center, center center;
+      background-repeat: no-repeat, no-repeat;
+      transition: opacity 2s ease-in-out;
+    }
+    .scene-backdrop-overlays--gold {
+      opacity: 0.4;
+      background-image:
+        radial-gradient(
+          ellipse 80% 75% at 50% 40%,
+          rgba(255, 220, 140, 0.14) 0%,
+          rgba(40, 32, 16, 0.45) 100%
+        ),
+        linear-gradient(
+          180deg,
+          rgba(60, 48, 20, 0.45) 0%,
+          rgba(30, 26, 14, 0.7) 100%
+        );
+    }
+    .scene-backdrop-overlays--dark {
+      opacity: 0;
+      background-image: var(--scene-bg-gradient), var(--scene-edge-vignette);
+    }
+    #storyPanel {
+      position: relative;
+      z-index: 1;
+      max-width: 42rem;
+      margin: 0 auto;
+      padding: 2rem 1.25rem 3rem;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    #speaker {
+      font-size: 0.95rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(212, 220, 216, 0.75);
+      margin: 0 0 0.75rem;
+      text-shadow:
+        0 0 1.25rem rgba(0, 0, 0, 0.9),
+        0 2px 14px rgba(0, 0, 0, 0.75);
+    }
+    #speaker:empty {
+      display: none;
+    }
+    .section-label {
+      display: block;
+      text-align: center;
+      font-size: 0.9rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(212, 220, 216, 0.85);
+      margin: 0 0 0.5rem;
+      text-shadow:
+        0 0 1.25rem rgba(0, 0, 0, 0.9),
+        0 2px 14px rgba(0, 0, 0, 0.75);
+    }
+    .story-text {
+      white-space: pre-wrap;
+      line-height: 1.65;
+      font-size: 1.05rem;
+      margin: 0 0 1.5rem;
+      text-shadow:
+        0 0 1.25rem rgba(0, 0, 0, 0.9),
+        0 2px 14px rgba(0, 0, 0, 0.75);
+    }
+    .story-text .golden-moss {
+      color: #f4d56a;
+      font-style: inherit;
+      font-weight: 500;
+      text-shadow:
+        0 0 8px rgba(255, 220, 120, 0.95),
+        0 0 18px rgba(255, 190, 60, 0.8),
+        0 0 32px rgba(255, 160, 30, 0.55),
+        0 0 1.25rem rgba(0, 0, 0, 0.9),
+        0 2px 14px rgba(0, 0, 0, 0.75);
+    }
+    #storyPanel button {
+      display: block;
+      width: 100%;
+      max-width: 20rem;
+      margin: 0.6rem 0;
+      padding: 0.75rem 1rem;
+      font-size: 1rem;
+      border: 1px solid #5a7a66;
+      border-radius: 8px;
+      background: #2a3d32;
+      color: #f0f4ef;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    #storyPanel button:hover {
+      background: #3a5244;
+    }
+  </style>
+</head>
+<body>
+  <div id="sceneBackdrop" aria-hidden="true">
+    <div class="scene-backdrop-mood scene-backdrop-mood--gold"></div>
+    <div class="scene-backdrop-mood scene-backdrop-mood--dark" id="backdropMoodDark"></div>
+    <div class="scene-backdrop-photo" id="backdropPhoto"></div>
+    <div class="scene-backdrop-overlays scene-backdrop-overlays--gold" id="backdropOverlaysGold"></div>
+    <div class="scene-backdrop-overlays scene-backdrop-overlays--dark" id="backdropOverlaysDark"></div>
+  </div>
+
+  <div id="storyPanel">
+    <div id="speaker"></div>
+    <div id="text" class="story-text"></div>
+    <button type="button" id="continueButton">Continue</button>
+  </div>
+
+  <script>
+    const dialogue = [
+      {
+        speaker: "",
+        text: "The smell of smoke grows stronger with every step... and you see a golden glow in the distance!",
+      },
+      {
+        speaker: "",
+        text: "The forest has changed again. Moss no longer carpets the ground in thick green beds, but clings in scattered patches to exposed stone and fallen bark. The soil beneath your paws grows dry and compacted. Tree stumps appear more frequently now, pale circles weeping sap into the dirt.",
+        moodFadeStart: true,
+      },
+      {
+        speaker: "",
+        text: "Somewhere ahead, something rumbles continuously.",
+      },
+      {
+        speaker: "",
+        text: "Not thunder.",
+      },
+      {
+        speaker: "",
+        text: "Something larger.",
+      },
+      
+      {
+        speaker: "",
+        text: "You stop.",
+      },
+      {
+        speaker: "",
+        text: "The sacred land should be here.",
+      },
+      {
+        speaker: "",
+        text: "Tyto’s directions were exact. The old stories spoke of hills glowing gold beneath moonlight, of moss so vibrant it seemed to carry sunlight within it. Even now, you search for some trace of it between the trunks.",
+      },
+      {
+        speaker: "",
+        text: "But there are no trunks anymore.",
+      },
+      {
+        speaker: "",
+        text: "Before you stretches a vast black expanse.",
+        showBackdrop: true,
+      },
+      {
+        speaker: "",
+        text: "The ground is flat, hard, and hot-smelling. White lines cut across it in enormous rows. Strange metal creatures rest silently upon it, their glass surfaces reflecting the gray sky above.",
+      },
+      {
+        speaker: "",
+        text: "Beyond them stands a structure so massive you cannot comprehend its shape all at once.",
+      },
+      {
+        speaker: "",
+        text: "Yellow light spills from it endlessly.",
+      },
+      {
+        speaker: "",
+        text: "Above the entrance hangs enormous blue lettering:\n\nWALMART",
+      },
+      {
+        speaker: "",
+        text: "The doors slide open and shut.\n\nOpen and shut.\n\nOpen and shut.",
+      },
+      {
+        speaker: "",
+        text: "Warm artificial air drifts across the parking lot carrying smells you cannot understand: plastic, sugar, chemicals, cooked meat.",
+      },
+      {
+        speaker: "",
+        text: "No pine sap.\n\nNo wet soil.\n\nNo moss.",
+      },
+      {
+        speaker: "Myopus (to self)",
+        text: "“…Where is it?”",
+      },
+      {
+        speaker: "",
+        text: "You run forward.",
+      },
+      {
+        speaker: "",
+        text: "Across the burning pavement. Between enormous unmoving wheels. Past mountains of gathered carts taller than trees from your home forest.",
+      },
+      {
+        speaker: "",
+        text: "Surely the moss must still exist somewhere.",
+      },
+      {
+        speaker: "",
+        text: "A remnant beneath the concrete.\n\nA surviving patch hidden from whatever happened here.",
+      },
+      {
+        speaker: "",
+        text: "You search along the edges of the building until your paws ache.",
+      },
+      {
+        speaker: "",
+        text: "Nothing.",
+      },
+      {
+        speaker: "",
+        text: "Even the insects are gone.",
+      },
+      {
+        speaker: "",
+        text: "The humming overhead never stops.",
+      },
+      {
+        speaker: "",
+        text: "Near the edge of the lot, beside a storm drain, something green catches your eye.",
+      },
+      {
+        speaker: "",
+        text: "You rush toward it.",
+      },
+      {
+        speaker: "",
+        text: "A tiny strip of moss pushes weakly through a crack in the pavement.",
+      },
+      {
+        speaker: "",
+        text: "Not gold.",
+      },
+      {
+        speaker: "",
+        text: "Just ordinary moss, gray at the edges and coated in dust.",
+      },
+      {
+        speaker: "",
+        text: "You stare at it for a long time.",
+      },
+      {
+        speaker: "",
+        text: "Far above you, enormous lights flicker on against the evening sky.\n\nOne by one.\n\nOne by one.\n\nThe forest behind you darkens.\n\nThe building does not.",
+      },
+    ];
+
+    let currentLine = 0;
+
+    const speakerEl = document.getElementById("speaker");
+    const textEl = document.getElementById("text");
+    const button = document.getElementById("continueButton");
+    const backdropPhoto = document.getElementById("backdropPhoto");
+    const backdropMoodDark = document.getElementById("backdropMoodDark");
+    const backdropOverlaysGold = document.getElementById("backdropOverlaysGold");
+    const backdropOverlaysDark = document.getElementById("backdropOverlaysDark");
+
+    function highlightGoldenMoss(html) {
+      if (!html) return "";
+      return html.replace(/\bgolden\s+moss\b/gi, (match) => {
+        return `<span class="golden-moss">${match}</span>`;
+      });
+    }
+
+    const backdropStartIndex = dialogue.findIndex((d) => d.showBackdrop);
+    const moodFadeStartIndex = dialogue.findIndex((d) => d.moodFadeStart);
+
+    function updateBackdrop() {
+      const showPhoto =
+        backdropStartIndex >= 0 && currentLine >= backdropStartIndex;
+
+      let darkMix = 0;
+      if (
+        moodFadeStartIndex >= 0 &&
+        backdropStartIndex > moodFadeStartIndex &&
+        currentLine >= moodFadeStartIndex
+      ) {
+        if (currentLine >= backdropStartIndex) {
+          darkMix = 1;
+        } else {
+          darkMix =
+            (currentLine - moodFadeStartIndex) /
+            (backdropStartIndex - moodFadeStartIndex);
+        }
+      } else if (currentLine >= backdropStartIndex && backdropStartIndex >= 0) {
+        darkMix = 1;
+      }
+
+      backdropMoodDark.style.opacity = String(darkMix);
+      backdropOverlaysDark.style.opacity = String(darkMix);
+      backdropOverlaysGold.style.opacity = String(0.4 * (1 - darkMix));
+      backdropPhoto.classList.toggle("is-visible", showPhoto);
+    }
+
+    function renderDialogue() {
+      const entry = dialogue[currentLine];
+      speakerEl.textContent =
+        entry.speaker && entry.speaker !== "Narration" ? entry.speaker : "";
+      if (entry.isSection) {
+        textEl.innerHTML = `<span class="section-label">${entry.text}</span>`;
+      } else {
+        textEl.innerHTML = highlightGoldenMoss(entry.text);
+      }
+      button.textContent =
+        currentLine >= dialogue.length - 1 ? "Credits" : "Continue";
+      updateBackdrop();
+    }
+
+    button.addEventListener("click", () => {
+      if (currentLine >= dialogue.length - 1) {
+        window.location.href = "../title_scene/end_credits.html";
+        return;
+      }
+      currentLine++;
+      renderDialogue();
+    });
+
+    renderDialogue();
+  </script>
+</body>
+</html>

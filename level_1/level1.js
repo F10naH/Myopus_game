@@ -20,6 +20,8 @@ const LOC_TITLES = {
 };
 
 const BACKDROP_PHOTO_FADE_SEC = 2;
+/** 0–1; only the photo layer (story panel stays readable over parchment). */
+const BACKDROP_PHOTO_OPACITY = 0.55;
 
 if (typeof document !== "undefined") {
   document.documentElement.style.setProperty(
@@ -28,8 +30,8 @@ if (typeof document !== "undefined") {
   );
 }
 
-let lastBackdropImageKey = "";
-let lastPhotoOpacity = 0;
+/** Locations whose backdrop has already been shown (fade only on first visit). */
+const backdropLocationsShown = new Set();
 
 let levelState = {
   currentLocation: "home",
@@ -112,62 +114,70 @@ window.handleInline = function(action) {
   }
 };
 
+function fadeInScenePhoto(root, photoEl, image, photoOpacity) {
+  photoEl.classList.add("scene-backdrop-photo--no-transition");
+  root.style.setProperty("--scene-photo-opacity", "0");
+  root.style.setProperty("--scene-bg-image", image);
+  void photoEl.offsetHeight;
+  photoEl.classList.remove("scene-backdrop-photo--no-transition");
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      root.style.setProperty("--scene-photo-opacity", String(photoOpacity));
+    });
+  });
+}
+
 function applySceneBackdrop() {
   const root = document.documentElement;
+  const photoEl = document.querySelector(".scene-backdrop-photo");
+  const loc = levelState.currentLocation;
   let image = "none";
-  let photoOpacity = 0.88;
+  let photoOpacity = BACKDROP_PHOTO_OPACITY;
 
-  if (levelState.currentLocation === "home") {
+  if (loc === "home") {
     image = `url("${BACKDROP_IMAGES.home}")`;
-  } else if (levelState.currentLocation === "brook") {
+  } else if (loc === "brook") {
     image = `url("${BACKDROP_IMAGES.brook}")`;
-  } else if (levelState.currentLocation === "firepit") {
+  } else if (loc === "firepit") {
     image = `url("${BACKDROP_IMAGES.firepit}")`;
-  } else if (levelState.currentLocation === "patch") {
+  } else if (loc === "patch") {
     image = `url("${BACKDROP_IMAGES.patch}")`;
   } else {
     photoOpacity = 0;
   }
 
-  root.style.setProperty("--scene-bg-image", image);
-  
-  const photoEl = document.querySelector(".scene-backdrop-photo");
-  const imageKey = image;
-  const sameImage = imageKey === lastBackdropImageKey;
-  const hadPhoto = lastPhotoOpacity > 0;
-
   if (photoOpacity <= 0) {
     if (photoEl) {
       photoEl.classList.add("scene-backdrop-photo--no-transition");
       root.style.setProperty("--scene-photo-opacity", "0");
+      root.style.setProperty("--scene-bg-image", "none");
       void photoEl.offsetHeight;
       photoEl.classList.remove("scene-backdrop-photo--no-transition");
     } else {
       root.style.setProperty("--scene-photo-opacity", "0");
+      root.style.setProperty("--scene-bg-image", "none");
     }
-    lastBackdropImageKey = imageKey;
-    lastPhotoOpacity = 0;
     return;
   }
 
-  const needsFadeIn = !sameImage || !hadPhoto;
+  const isFirstAppearance = !backdropLocationsShown.has(loc);
+  backdropLocationsShown.add(loc);
 
-  if (needsFadeIn && photoEl) {
-    photoEl.classList.add("scene-backdrop-photo--no-transition");
-    root.style.setProperty("--scene-photo-opacity", "0");
-    void photoEl.offsetHeight;
-    photoEl.classList.remove("scene-backdrop-photo--no-transition");
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        root.style.setProperty("--scene-photo-opacity", String(photoOpacity));
-      });
-    });
-  } else {
-    root.style.setProperty("--scene-photo-opacity", String(photoOpacity));
+  if (isFirstAppearance && photoEl) {
+    const urlMatch = image.match(/url\(["']?([^"')]+)["']?\)/);
+    if (urlMatch) {
+      const preload = new Image();
+      preload.onload = () => fadeInScenePhoto(root, photoEl, image, photoOpacity);
+      preload.onerror = () => fadeInScenePhoto(root, photoEl, image, photoOpacity);
+      preload.src = urlMatch[1];
+    } else {
+      fadeInScenePhoto(root, photoEl, image, photoOpacity);
+    }
+    return;
   }
 
-  lastBackdropImageKey = imageKey;
-  lastPhotoOpacity = photoOpacity;
+  root.style.setProperty("--scene-bg-image", image);
+  root.style.setProperty("--scene-photo-opacity", String(photoOpacity));
 }
 
 function renderScene() {
@@ -321,7 +331,7 @@ function renderScene() {
       levelState.stewGiven = true;
       appendText(`"Save your breath."\n\nBeaver: "Fine. I won’t be surprised to find your corpse on tomorrow’s walk."\n\n<em>With that, the Beaver moves out of the log, and accepts the stew. You enter deeper into the forest.</em>`);
       showText([
-        { text: "Proceed to Level 2", action: () => window.location.href = "../level_2/level2.html" } 
+        { text: "Proceed to Chapter 2", action: () => window.location.href = "../level_2/level2.html" } 
       ]);
       break;
     
@@ -329,7 +339,7 @@ function renderScene() {
       levelState.stewGiven = true;
       appendText(`"Go ahead."\n\nBeaver: "If you seek the cure of cures, you are about to enter a much more dangerous part of the forest. A little thing like you…you ought to look after yourself carefully. You will not find the creatures there to be as friendly as I…"\n\n<em>With that, the Beaver moves out of the log, and accepts the stew. You enter deeper into the forest.</em>`);
       showText([
-        { text: "Proceed to Level 2", action: () => window.location.href = "../level_2/level2.html" } 
+        { text: "Proceed to Chapter 2", action: () => window.location.href = "../level_2/level2.html" } 
       ]);
       break;
 

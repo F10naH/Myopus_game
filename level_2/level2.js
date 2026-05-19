@@ -242,9 +242,18 @@ function renderScene() {
 
           The scent of pine smoke lingers behind you.
 
+          Beyond the black water, the land rises into rows of stunted trees—an orchard laid out in rigid lines, as if humans had shaped the world and then walked away.
+
           The journey continues...
         `,
-        [{ text: "Play again", action: restartLevel2 }]
+        [
+          {
+            text: "Proceed to Chapter 3",
+            action: () => {
+              window.location.href = "../level_3/level3.html";
+            },
+          },
+        ]
       );
       break;
   }

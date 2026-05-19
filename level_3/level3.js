@@ -18,7 +18,7 @@ const HARE_BACKDROP_POSITION = "center 50%";
 const ORCHARD_BACKDROP_ZOOM = "80%";
 const HARE_BACKDROP_ZOOM = "70%";
 
-const ORCHARD_PHOTO_OPACITY = 0.88;
+const ORCHARD_PHOTO_OPACITY = 0.90;
 const HARE_PHOTO_OPACITY = 0.88;
 
 const BACKDROP_PHOTO_FADE_SEC = 2;
@@ -43,6 +43,7 @@ let levelState = {
 
 let activePuzzleFinish = null;
 let activePuzzleMessageListener = null;
+let activeAppleSpaceListener = null;
 
 function setSkipPuzzleButtonVisible(visible) {
   const btn = document.getElementById("skipPuzzleTestBtn");
@@ -53,6 +54,10 @@ function forceClosePuzzleIframe() {
   if (activePuzzleMessageListener) {
     window.removeEventListener("message", activePuzzleMessageListener);
     activePuzzleMessageListener = null;
+  }
+  if (activeAppleSpaceListener) {
+    window.removeEventListener("keydown", activeAppleSpaceListener);
+    activeAppleSpaceListener = null;
   }
   activePuzzleFinish = null;
   setSkipPuzzleButtonVisible(false);
@@ -79,9 +84,9 @@ function renderScene() {
   switch (levelState.currentScene) {
     case "orchard_entry":
       showText(
-        `The lush whimsy of the deep forest dies at a invisible border, surrendered to a heavy, unnatural silence. Before you lies the Abandoned Orchard—a landscape ravished, hollowed out, and left entirely empty by human hands. Where moss once thrived, the ground is choked by the rot of "False Moss," a graveyard of decaying burlap sacks and unyielding plastic weed barriers. The trees here are not free; they stand as stunted, uniform sentinels forced into a rigid, geometric grid that chokes the chaotic beauty of the natural world.
+        `The lush whimsy of the deep forest dies at a invisible border, surrendered to a heavy, unnatural silence. Before you lies the Abandoned Orchard, left entirely empty by human hands. The trees here are not free; they stand as stunted, uniform sentinels forced into a rigid, geometric grid that chokes the chaotic beauty of the natural world.
 
-        In the dead center of this sterile row, the silence is broken by a desperate, frantic struggle. A Mountain Hare is pinned to the dirt, hopelessly entangled beneath a massive, discarded roll of plastic BIRD NETTING. It is thrashing hysterically, its paws catching in the synthetic threads of a trap originally engineered to protect the orchard's hoarded fruit. Now abandoned, the plastic has outlived its purpose, acting as a permanent, ghostly snare that has stolen the hare’s freedom. 
+        In the dead center of this sterile row, the silence is broken by a desperate, frantic struggle. A Mountain Hare is pinned to the dirt, hopelessly entangled beneath a massive, discarded BIRD NETTING. It is thrashing hysterically, its paws catching in the synthetic threads of a trap originally meant to protect the orchard's fruit. 
 
         The heavy tangle of this iron-like mesh stretches across the entire row, completely blocking your path forward. To save your partner, you must find a way past this synthetic barrier.`,
         [
@@ -108,7 +113,7 @@ function renderScene() {
       if (!levelState.hoseConnected) {
         hoseText = `You step cautiously toward the base of the rusted iron tap protruding from the packed earth. There, half-buried in the dust and crumbling microplastics, lies a fragment of a dried-out, cracked garden hose. To your small eyes, it is a hollow, synthetic carcass—vibrant yellow but stiffened and split by seasons of neglect. 
 
-          This must be the 'snake' the Hare was screaming about in its delirium. Its rubber skin smells faintly of chemicals, ancient dust, and stagnant iron. It leads nowhere, completely severed from its source, a useless line of plastic cutting across the dead soil. Yet, if it could somehow be mended and tethered back to the iron faucet, it might hold the moisture needed to wake the orchard's sleeping sugars.`;
+          This must be the 'snake' the Hare was screaming about in its delirium. It leads nowhere, completely severed from its source. Yet, if it could somehow be mended and tethered back to the iron faucet, it might hold the moisture needed to wake the orchard's sleeping sugars.`;
 
         hoseOptions = [
           {
@@ -123,7 +128,7 @@ function renderScene() {
       } else {
         hoseText = `The 'Yellow Snake' has been wrestled into alignment, its cracked seams forced together and locked tightly onto the threads of the rusted iron tap. The transformation is immediate. 
 
-          A low, hollow hiss echoes through the rubber tubing as water surges from deep beneath the ground. At the puncture points, small, clear droplets swell and fall, sinking instantly into the parched earth with a soft, drinking sound. The hose is no longer a dead piece of litter; it has become an artificial artery, pulsing with life-giving moisture that creeps steadily down the grid toward the depression where the bitter fruit waits.`;
+          A low, hollow hiss echoes through the rubber tubing as water surges from deep beneath the ground. At the puncture points, small, clear droplets swell and fall, sinking instantly into the parched earth with a soft, drinking sound. The hose is no longer a dead piece of litter but pulsing with water.`;
 
         hoseOptions = [
           {
@@ -188,7 +193,7 @@ function renderScene() {
         // Branch 1: No water, no progress
         appleText = `You lean over the edge of a deep, collapsed crater in the rotting burlap. At the bottom sits a single, forgotten apple, half-buried in the dust. It is mushy, shriveled, and bruised a sickly dark brown—a bitter relic left behind when the humans abandoned this place. 
 
-          You sniff at it, but there is no comfort here. It smells only of dry rot, dust, and old wood. The sun has baked it dry, locking its sugars away. It desperately needs moisture if it is ever to release the potent, dizzying scent required to soothe the panicked Hare. 
+          You sniff at it. It smells only of dry rot, dust, and old wood. The sun has baked it dry, locking its sugars away. It desperately needs moisture if it is ever to release the potent, dizzying scent required to soothe the panicked Hare. 
           
           You look back toward the iron faucet. You need to find a way to route the water here first.`;
 
@@ -202,7 +207,7 @@ function renderScene() {
         // Branch 2: Water is flowing, ready for the mini-game
         appleText = `The apple rests in its shallow dirt depression, but the world around it has changed. Clear, cold water from the newly mended hose is pooling at its base, slowly soaking through the leathery, wrinkled skin. 
 
-          As the moisture seeps deep into the bruised flesh, the fruit begins to swell. Tiny, pale bubbles of fermentation hiss and crackle at its surface, fighting against the dry decay. The air is thick with anticipation. The sugars are waking up, waiting for a precise, rhythmic touch to guide the fermentation process and unlock the true, potent depth of its hidden aroma.`;
+          As the moisture seeps deep into the bruised flesh, the fruit begins to swell. Tiny, pale bubbles of fermentation hiss and crackle at its surface, fighting against the dry decay. The sugars are waking up, waiting for a precise, rhythmic touch to guide the fermentation process and unlock the true, potent depth of its hidden aroma.`;
 
         appleOptions = [
           {
@@ -239,13 +244,52 @@ function renderScene() {
       if (appleStoryPanel && appleFrame) {
         appleStoryPanel.style.display = "none";
         appleFrame.style.display = "block";
-        appleFrame.src = "apple_puzzle.html"; // Route into the rhythm canvas frame
+        appleFrame.addEventListener(
+          "load",
+          () => {
+            appleFrame.focus();
+            try {
+              appleFrame.contentWindow?.focus();
+              appleFrame.contentDocument
+                ?.getElementById("gameCanvas")
+                ?.focus({ preventScroll: true });
+            } catch (_) {
+              /* cross-origin guard */
+            }
+          },
+          { once: true },
+        );
+        appleFrame.src = "apple_puzzle.html";
+        requestAnimationFrame(() => appleFrame.focus());
       }
 
       let appleFinished = false;
+
+      if (activeAppleSpaceListener) {
+        window.removeEventListener("keydown", activeAppleSpaceListener);
+        activeAppleSpaceListener = null;
+      }
+      activeAppleSpaceListener = (e) => {
+        if (e.code !== "Space" || appleFrame.style.display === "none") return;
+        try {
+          const input = appleFrame.contentWindow?.handleAppleInput;
+          if (typeof input !== "function") return;
+          e.preventDefault();
+          input(e);
+        } catch (_) {
+          /* iframe not ready */
+        }
+      };
+      window.addEventListener("keydown", activeAppleSpaceListener);
+
       function finishApplePuzzle() {
         if (appleFinished) return;
         appleFinished = true;
+
+        if (activeAppleSpaceListener) {
+          window.removeEventListener("keydown", activeAppleSpaceListener);
+          activeAppleSpaceListener = null;
+        }
 
         if (activePuzzleMessageListener === appleMessageListener) {
           window.removeEventListener("message", appleMessageListener);
@@ -342,7 +386,7 @@ function renderScene() {
         [
           {
             text: "Move toward the Village",
-            action: () => alert("End of Level 3"),
+            action: () => (window.location.href = "../ending/ending.html"),
           },
         ],
       );
@@ -392,18 +436,6 @@ function renderScene() {
       setSkipPuzzleButtonVisible(true); // Mount testing shortcuts seamlessly
 
       window.addEventListener("message", hareMessageListener);
-      break;
-
-    case "level_complete":
-      showText(
-        `The Hare is free! It explains it was only stealing fruit for its family. The path is clear.`,
-        [
-          {
-            text: "Move toward the Village",
-            action: () => alert("End of Level 3"),
-          },
-        ],
-      );
       break;
   }
 }

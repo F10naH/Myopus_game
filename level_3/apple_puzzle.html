@@ -90,7 +90,13 @@
         Click or press SPACEBAR when a water droplet hits the glowing collection
         ring!
       </p>
-      <canvas id="gameCanvas" width="400" height="400"></canvas>
+      <canvas
+        id="gameCanvas"
+        width="400"
+        height="400"
+        tabindex="0"
+        aria-label="Fermentation rhythm game"
+      ></canvas>
       <div id="progress-bar-container">
         <div id="progress-bar"></div>
       </div>
@@ -175,6 +181,7 @@
       }
 
       function handleInput(e) {
+        if (progress >= 100) return;
         if (e.type === "keydown" && e.code !== "Space") return;
         if (e.type === "keydown") e.preventDefault(); // Prevent page scrolling
 
@@ -206,8 +213,19 @@
         }
       }
 
+      function ensureFocus() {
+        canvas.focus({ preventScroll: true });
+      }
+
       window.addEventListener("keydown", handleInput);
       canvas.addEventListener("mousedown", handleInput);
+      document
+        .getElementById("puzzle-container")
+        .addEventListener("pointerdown", ensureFocus);
+
+      ensureFocus();
+      window.addEventListener("load", ensureFocus);
+      window.handleAppleInput = handleInput;
 
       function completePuzzle() {
         window.parent.postMessage("APPLE_COMPLETE", "*");
