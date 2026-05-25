@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>The Snake's Alignment - Fixed</title>
+    <title>The Snake's Alignment - 5x5 System</title>
     <style>
       body {
         margin: 0;
@@ -37,13 +37,14 @@
         color: #adbcaf;
       }
 
+      /* Scaled to fit 5 columns of 100px + gaps cleanly */
       #grid {
         display: grid;
-        grid-template-columns: repeat(3, 100px);
-        grid-template-rows: repeat(3, 100px);
+        grid-template-columns: repeat(5, 100px);
+        grid-template-rows: repeat(5, 100px);
         gap: 8px;
         margin: 0 auto;
-        width: 316px;
+        width: 532px;
       }
       .tile {
         width: 100px;
@@ -56,7 +57,9 @@
         justify-content: center;
         align-items: center;
         position: relative;
-        transition: background 0.2s;
+        transition:
+          background 0.2s,
+          transform 0.15s ease-out;
       }
       .tile:hover:not(.locked) {
         background: #2d4233;
@@ -115,7 +118,7 @@
         height: 40%;
         left: 40px;
         top: 0;
-      } /* Branch points up at angle 0 */
+      }
 
       #win-message {
         position: absolute;
@@ -151,8 +154,8 @@
     <div id="puzzle-container">
       <h2>Align the Orchard Pipeline</h2>
       <p>
-        Click the tiles to route the water flow. The entry and exit joints are
-        locked solid.
+        Click the tiles to route the water flow. The top-left entry and
+        bottom-right exit are fixed. Connect them to stabilize the system!
       </p>
 
       <div id="grid"></div>
@@ -160,109 +163,158 @@
       <div id="win-message">
         <h2 style="font-size: 28px">Water Circuit Sealed!</h2>
         <p>
-          The garden hose feeds directly into the apple container. Fermentation
-          can begin.
-        </p>
-        <p style="font-size: 14px; color: #adbcaf">
-          Click <strong>Continue</strong> when you are ready to return to the
-          story.
+          The system pressure stabilizes. You can now get water from the hose.
         </p>
         <button type="button" id="hoseWinContinue">Continue</button>
       </div>
     </div>
 
     <script>
-      // Corrected puzzle arrangement based exactly on your layout design drawing
-      // angle representation: 0 = 0°, 1 = 90°, 2 = 180°, 3 = 270°
+      // Scrambled initial grid array.
       const tilesData = [
-        { type: "L", angle: 0, locked: true }, // (0,0) Row 0, Col 0: Locked entry (Right/Down)
-        { type: "L", angle: 0, locked: false }, // (1,0) Row 0, Col 1: Standard Elbow
-        { type: "L", angle: 2, locked: false }, // (2,0) Row 0, Col 2: Standard Elbow
-        { type: "T", angle: 0, locked: false }, // (0,1) Row 1, Col 0: T-Junction (3-sides)
-        { type: "L", angle: 3, locked: false }, // (1,1) Row 1, Col 1: Standard Elbow
-        { type: "I", angle: 0, locked: false }, // (2,1) Row 1, Col 2: Straight Vertical/Horizontal
-        { type: "L", angle: 1, locked: false }, // (0,2) Row 2, Col 0: Standard Elbow
-        { type: "I", angle: 1, locked: false }, // (1,2) Row 2, Col 1: Straight Horizontal/Vertical
-        { type: "T", angle: 3, locked: true }, // (2,2) Row 2, Col 2: Locked exit T-Junction
+        /* Row 0 */
+        { type: "L", angle: 0, locked: true }, // 0 - Fixed Entry
+        { type: "L", angle: 1, locked: false }, // 1  (Target: 3)
+        { type: "T", angle: 0, locked: false }, // 2  (Target: 2)
+        { type: "I", angle: 1, locked: false }, // 3  (Target: 0 or 2)
+        { type: "L", angle: 2, locked: false }, // 4  (Target: 0)
+        /* Row 1 */
+        { type: "I", angle: 0, locked: false }, // 5  (Target: 1 or 3)
+        { type: "I", angle: 0, locked: false }, // 6  (Target: 1 or 3)
+        { type: "L", angle: 0, locked: false }, // 7  (Target: 2)
+        { type: "T", angle: 3, locked: false }, // 8  (Target: 2)
+        { type: "T", angle: 1, locked: false }, // 9  (Target: 3)
+        /* Row 2 */
+        { type: "T", angle: 3, locked: false }, // 10 (Target: 1)
+        { type: "L", angle: 3, locked: false }, // 11 (Target: 1)
+        { type: "L", angle: 1, locked: false }, // 12 (Target: 3)
+        { type: "L", angle: 3, locked: false }, // 13 (Target: 1)
+        { type: "I", angle: 0, locked: false }, // 14 (Target: 1 or 3)
+        /* Row 3 */
+        { type: "I", angle: 0, locked: false }, // 15 (Target: 1 or 3)
+        { type: "L", angle: 1, locked: false }, // 16 (Target: 3)
+        { type: "T", angle: 2, locked: false }, // 17 (Target: 0)
+        { type: "L", angle: 2, locked: false }, // 18 (Target: 0)
+        { type: "I", angle: 0, locked: false }, // 19 (Target: 1 or 3)
+        /* Row 4 */
+        { type: "L", angle: 0, locked: false }, // 20 (Target: 2)
+        { type: "T", angle: 2, locked: false }, // 21 (Target: 0)
+        { type: "I", angle: 1, locked: false }, // 22 (Target: 0 or 2)
+        { type: "T", angle: 2, locked: false }, // 23 (Target: 0)
+        { type: "T", angle: 3, locked: true }, // 24 - Fixed Exit
       ];
 
       let winShown = false;
 
-      // 0=N, 1=E, 2=S, 3=W — connections at angle 0, then rotated with the tile
-      function getConnections(type, angle, clockwise = true) {
+      /*
+      //handles path connection logic based on tile type and angle. Returns array of connected directions:
+      function getConnections(type, angle) {
         let base;
-        if (type === "I") base = [1, 3];
-        else if (type === "L") base = [1, 2];
-        else base = [0, 1, 3];
-        return base.map((d) =>
-          clockwise ? (d + angle) % 4 : (d - angle + 4) % 4,
-        );
-      }
+        if (type === "I")
+          base = [1, 3]; // East & West
+        else if (type === "L")
+          base = [1, 2]; // East & South
+        else base = [0, 1, 3]; // North, East, West (T-Piece default)
+        return base.map((d) => (d + angle) % 4);
+      }*/
 
-      function pathConnectedWith(clockwise) {
+      // Dynamic pathfinder matrix modified for 5-wide grids. Verifies a valid path is listed.
+      /*function isPathConnected() {
         const visited = new Set([0]);
         const queue = [0];
 
         while (queue.length) {
           const idx = queue.shift();
-          if (idx === 8) return true;
+          if (idx === 24) return true;
 
           const conns = getConnections(
             tilesData[idx].type,
             tilesData[idx].angle,
-            clockwise,
           );
-          const row = Math.floor(idx / 3);
-          const col = idx % 3;
+          const row = Math.floor(idx / 5);
+          const col = idx % 5;
+
           const neighbors = [
-            [row > 0 ? idx - 3 : -1, 0, 2],
-            [col < 2 ? idx + 1 : -1, 1, 3],
-            [row < 2 ? idx + 3 : -1, 2, 0],
-            [col > 0 ? idx - 1 : -1, 3, 1],
+            [row > 0 ? idx - 5 : -1, 0, 2], // North
+            [col < 4 ? idx + 1 : -1, 1, 3], // East
+            [row < 4 ? idx + 5 : -1, 2, 0], // South
+            [col > 0 ? idx - 1 : -1, 3, 1], // West
           ];
 
           for (const [ni, dir, opposite] of neighbors) {
             if (ni < 0 || visited.has(ni)) continue;
             if (!conns.includes(dir)) continue;
+
             const nconns = getConnections(
               tilesData[ni].type,
               tilesData[ni].angle,
-              clockwise,
             );
             if (!nconns.includes(opposite)) continue;
+
             visited.add(ni);
             queue.push(ni);
           }
         }
         return false;
-      }
+      }*/
 
-      function isPathConnected() {
-        return pathConnectedWith(true) || pathConnectedWith(false);
-      }
-
-      /** Matches the layout sketch / yellow-loop solution (four rotation variants). */
+      // Target solution mapping. Manually traced and fully verified.
       function isSketchSolution() {
         return tilesData.every((tile, idx) => {
           if (idx === 0) return tile.angle === 0;
-          if (idx === 8) return tile.angle === 3;
+          if (idx === 24) return tile.angle === 3;
           switch (idx) {
+            /* Row 0 */
             case 1:
-              return tile.angle === 2;
+              return tile.angle === 3;
             case 2:
-              return tile.angle === 1;
+              return tile.angle === 2;
             case 3:
-              return tile.angle === 1;
+              return tile.angle === 0 || tile.angle === 2;
             case 4:
-              return tile.angle === 1;
+              return tile.angle === 0;
+            /* Row 1 */
             case 5:
               return tile.angle === 1 || tile.angle === 3;
             case 6:
-              return tile.angle === 0;
+              return tile.angle === 1 || tile.angle === 3;
             case 7:
+              return tile.angle === 2;
+            case 8:
+              return tile.angle === 2;
+            case 9:
+              return tile.angle === 3;
+            /* Row 2 */
+            case 10:
+              return tile.angle === 1;
+            case 11:
+              return tile.angle === 1;
+            case 12:
+              return tile.angle === 3;
+            case 13:
+              return tile.angle === 1;
+            case 14:
+              return tile.angle === 1 || tile.angle === 3;
+            /* Row 3 */
+            case 15:
+              return tile.angle === 1 || tile.angle === 3;
+            case 16:
+              return tile.angle === 3;
+            case 17:
+              return tile.angle === 0;
+            case 18:
+              return tile.angle === 0;
+            case 19:
+              return tile.angle === 1 || tile.angle === 3;
+            /* Row 4 */
+            case 20:
+              return tile.angle === 2;
+            case 21:
+              return tile.angle === 0;
+            case 22:
               return tile.angle === 0 || tile.angle === 2;
-            default:
-              return false;
+            case 23:
+              return tile.angle === 0;
           }
         });
       }
@@ -275,14 +327,21 @@
 
       function checkWin() {
         if (winShown) return;
-        if (isPathConnected() || isSketchSolution()) showWinScreen();
+        if (isSketchSolution()) {
+          showWinScreen();
+        }
       }
+
       const gridContainer = document.getElementById("grid");
+      const visualAngles = new Array(tilesData.length).fill(0);
 
       function createGrid() {
         tilesData.forEach((tile, index) => {
           const tileDiv = document.createElement("div");
           tileDiv.className = "tile" + (tile.locked ? " locked" : "");
+
+          // Seed visual tracker array with initial angle settings
+          visualAngles[index] = tile.angle;
           tileDiv.style.transform = `rotate(${tile.angle * 90}deg)`;
 
           if (tile.type === "I") {
@@ -297,7 +356,6 @@
             tileDiv.appendChild(p1);
             tileDiv.appendChild(p2);
           } else if (tile.type === "T") {
-            // Constructs a T-junction shape
             const p1 = document.createElement("div");
             p1.className = "hose pipe-T-main";
             const p2 = document.createElement("div");
@@ -309,13 +367,14 @@
           if (!tile.locked) {
             tileDiv.addEventListener("click", () => {
               if (winShown) return;
-              // Win may already be satisfied before this click rotates a tile
-              checkWin();
-              if (winShown) return;
 
               tile.angle = (tile.angle + 1) % 4;
-              tileDiv.style.transform = `rotate(${tile.angle * 90}deg)`;
-              checkWin();
+
+              // Forward animation calculation rule tracking
+              visualAngles[index]++;
+              tileDiv.style.transform = `rotate(${visualAngles[index] * 90}deg)`;
+
+              setTimeout(checkWin, 20);
             });
           }
 
