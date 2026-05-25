@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Level 3 — The Abandoned Orchard</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      :root {
+        --scene-bg-image: none;
+        --scene-img-position: center center;
+        --scene-img-size: cover;
+        --scene-edge-vignette: radial-gradient(
+          ellipse 80% 80% at 50% 50%,
+          rgba(0, 0, 0, 0) 45%,
+          rgba(70, 50, 30, 0.4) 100%
+        );
+        --scene-photo-opacity: 0.55;
+        --scene-photo-fade-duration: 2s;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        position: relative;
+        background: #e6dfd3; /* Restored Parchment base color */
+        color: #2c1e16; /* Restored Dark ink brown */
+        font-family: "Georgia", "Times New Roman", serif;
+      }
+      #sceneBackdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        background-color: #e6dfd3;
+      }
+      .scene-backdrop-photo {
+        position: absolute;
+        inset: 0;
+        background-image: var(--scene-bg-image);
+        background-size: var(--scene-img-size);
+        background-position: var(--scene-img-position);
+        background-repeat: no-repeat;
+        opacity: var(--scene-photo-opacity);
+        transition: opacity var(--scene-photo-fade-duration, 2s) ease-in-out;
+      }
+      .scene-backdrop-photo.scene-backdrop-photo--no-transition {
+        transition: none;
+      }
+      .scene-backdrop-overlays {
+        position: absolute;
+        inset: 0;
+        background-image: var(--scene-bg-gradient), var(--scene-edge-vignette);
+        background-size: cover, cover;
+        background-position:
+          center center,
+          center center;
+        background-repeat: no-repeat, no-repeat;
+      }
+      #storyPanel {
+        position: relative;
+        z-index: 1;
+        max-width: 42rem;
+        margin: 4rem auto; /* Floating box margin */
+        padding: 3rem 2.5rem;
+        background: rgba(
+          230,
+          223,
+          211,
+          0.8
+        ); /* 80% opaque cream matching Level 1 */
+        border-radius: 12px;
+        border: 1px solid rgba(44, 30, 22, 0.15);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      }
+      .location-title {
+        text-align: center;
+        font-weight: bold;
+        font-size: 2.2rem;
+        margin-bottom: 1.5rem;
+        letter-spacing: 2px;
+        font-family: "Palatino Linotype", "Book Antiqua", Palatino, serif;
+      }
+      .story-text {
+        text-align: center; /* Centered story alignment from Level 1 */
+        white-space: pre-wrap;
+        line-height: 1.65;
+        font-size: 1.15rem;
+        margin-bottom: 2.5rem;
+      }
+
+      /* Level 1 Inline Clickable Text Accents */
+      .interactable {
+        font-weight: bold;
+        text-decoration: underline;
+        cursor: pointer;
+        transition: opacity 0.2s;
+      }
+      .interactable:hover {
+        opacity: 0.7;
+      }
+
+      /* Custom Theme-Colored Accents for Level 3 Items */
+      .item-hose {
+        color: #b8860b;
+      } /* Antique Gold */
+      .item-apple {
+        color: #8c4631;
+      } /* Rust Red */
+      .item-hare {
+        color: #5a6b5c;
+      } /* Sage Green */
+      .item-faucet {
+        color: #4a7c82;
+      } /* Slate Blue */
+
+      .button-container {
+        display: flex;
+        justify-content: center;
+        gap: 1.5rem;
+        flex-wrap: wrap;
+      }
+      #storyPanel button {
+        flex: 0 1 auto;
+        width: auto;
+        padding: 0.5rem 1rem;
+        font-size: 0.95rem;
+        border: none;
+        border-top: 1px solid rgba(44, 30, 22, 0.3);
+        border-bottom: 1px solid rgba(44, 30, 22, 0.3);
+        background: transparent;
+        color: #2c1e16;
+        cursor: pointer;
+        font-family: inherit;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        transition: background 0.2s;
+      }
+      #storyPanel button:hover {
+        background: rgba(44, 30, 22, 0.05);
+      }
+      #gameFrame {
+        position: relative;
+        z-index: 2;
+        display: none;
+        width: 100%;
+        height: 100vh;
+        border: 0;
+        background: #000;
+      }
+      #skipPuzzleTestBtn {
+        position: fixed;
+        bottom: 12px;
+        right: 12px;
+        z-index: 10;
+        font-size: 13px;
+        padding: 8px 12px;
+        border-radius: 8px;
+        border: 1px solid rgba(44, 30, 22, 0.3);
+        background: rgba(230, 223, 211, 0.9);
+        color: #2c1e16;
+        cursor: pointer;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="sceneBackdrop" aria-hidden="true">
+      <div class="scene-backdrop-photo"></div>
+      <div class="scene-backdrop-overlays"></div>
+    </div>
+    <div id="storyPanel">
+      <div id="adventureBox"></div>
+    </div>
+    <iframe id="gameFrame" title="Puzzle"></iframe>
+    <button type="button" id="skipPuzzleTestBtn" hidden>
+      Skip puzzle (test)
+    </button>
+    <script src="level3copy.js"></script>
+  </body>
+</html>

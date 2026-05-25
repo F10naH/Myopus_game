@@ -121,11 +121,11 @@ function renderScene() {
 
         // NEW: Dynamic Matrix Responses based on your file listings
         if (levelState.visitedApple && levelState.visitedHare) {
-          hoseText += `<span style="color: #FDE37C;">This broken plastic 'snake' may be both the source of the Hare's terror and the only tool capable of watering the bitter fruit down the row.</span> `;
+          hoseText += `<span style="color: #f4e8c8;">This broken plastic 'snake' may be both the source of the Hare's terror and the only tool capable of watering the bitter fruit down the row.</span> `;
         } else if (levelState.visitedHare) {
-          hoseText += `<span style="color: #FDE37C;">Staring at the stiff, yellow rubber coils, the pieces click together this was the terrifying 'Yellow Snake' the Hare was screaming about in its delirium.</span> `;
+          hoseText += `<span style="color: #f4e8c8;">Staring at the stiff, yellow rubber coils, the pieces click together this was the terrifying 'Yellow Snake' the Hare was screaming about in its delirium.</span> `;
         } else if (levelState.visitedApple) {
-          hoseText += `<span style="color: #FDE37C;">Looking at the hose, you think back to the shriveled apple rotting in the burlap: if you can patch this hose, it might be the perfect way to rehydrate the fruit.</span> `;
+          hoseText += `<span style="color: #f4e8c8;">Looking at the hose, you think back to the shriveled apple rotting in the burlap: if you can patch this hose, it might be the perfect way to rehydrate the fruit.</span> `;
         }
 
         hoseText += `If it could somehow be mended and tethered back to the iron faucet, it might prove useful.`;
@@ -208,14 +208,14 @@ function renderScene() {
 
         // NEW: Dynamic Matrix Responses based on your file listings
         if (levelState.visitedHose && levelState.visitedHare) {
-          appleText += `<span style="color: #FDE37C;">You now see the full picture: you must use the yellow hose to rehydrate the dry apple, creating the perfect scent to soothe the trapped Hare.</span> `;
+          appleText += `<span style="color: #f4e8c8;">You now see the full picture: you must use the yellow hose to rehydrate the dry apple, creating the perfect scent to soothe the trapped Hare.</span> `;
         } else if (levelState.visitedHare) {
-          appleText += `<span style="color: #FDE37C;">As you look down at the shriveled fruit, you remember the Hare's wide, bloodshot eyes and realize it might be the exact tranquilizer needed to quiet its manic thrashing.</span> `;
+          appleText += `<span style="color: #f4e8c8;">As you look down at the shriveled fruit, you remember the Hare's wide, bloodshot eyes and realize it might be the exact tranquilizer needed to quiet its manic thrashing.</span> `;
         } else if (levelState.visitedHose) {
-          appleText += `<span style="color: #FDE37C;">With the image of the cracked yellow hose fresh in your mind, you realize that if you can fix the water flow, you could rehydrate the apple.</span> `;
+          appleText += `<span style="color: #f4e8c8;">With the image of the cracked yellow hose fresh in your mind, you realize that if you can fix the water flow, you could rehydrate the apple.</span> `;
         }
 
-        appleText += `\nYou look back toward the iron faucet. Maybe you can find a way to route the water here first?`;
+        appleText += `\n\nYou look back toward the iron faucet. Maybe you can find a way to route the water here first?`;
 
         appleOptions = [
           {
@@ -348,14 +348,14 @@ function renderScene() {
 
         // NEW: Dynamic Response for Row 7 (Seen Hose, but not Apple yet)
         if (levelState.visitedHose && !levelState.visitedApple) {
-          hareText += `\n\n<span style="color: #FDE37C;">A 'Yellow Snake' slithering through the dirt... your mind flashes back to the harmless, stiff plastic hose you just found half-buried in the weeds nearby.</span>`;
+          hareText += `\n\n<span style="color: #f4e8c8;">A 'Yellow Snake' slithering through the dirt... your mind flashes back to the harmless, stiff plastic hose you just found half-buried in the weeds nearby.</span>`;
         }
 
         hareText += `\n\nYou realize you cannot examine the net or get any closer without being struck by its thrashing legs. To move forward and clear the path, you think you must find a way to quiet its racing mind.`;
 
         // NEW: Dynamic Response for Row 6 (Seen Apple, but not Hose yet)
         if (levelState.visitedApple && !levelState.visitedHose) {
-          hareText += ` <span style="color: #FDE37C;">The desperate creature's panic fills the space, and you think back to the shriveled apple down the row; if you could somehow make it a little more appetizing it might soothe this frenzy.</span>`;
+          hareText += ` <span style="color: #f4e8c8;">The desperate creature's panic fills the space, and you think back to the shriveled apple down the row; if you could somehow make it a little more appetizing it might soothe this frenzy.</span>`;
         }
 
         showText(hareText, [
