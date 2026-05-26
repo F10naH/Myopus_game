@@ -40,10 +40,10 @@ let levelState = {
   stewGiven: false
 };
 
-let screenText = "";
+let screenTextBlocks = [];
 
 function changeLocation(loc) {
-  screenText = ""; 
+  screenTextBlocks = []; 
   levelState.currentLocation = loc;
   setScene(loc);
 }
@@ -54,12 +54,11 @@ function setScene(scene) {
 }
 
 function appendText(newText) {
-  if (screenText) screenText += "\n\n";
-  screenText += newText;
+  screenTextBlocks.push(newText);
 }
 
 window.handleInline = function(action) {
-  screenText = ""; 
+  screenTextBlocks = []; 
   switch(action) {
     case 'pickup_wood':
       levelState.hasWood = true;
@@ -186,7 +185,7 @@ function renderScene() {
       break;
 
     case "home_blocked":
-      screenText = "";
+      screenTextBlocks = [];
       appendText(`<em>It’s pointless to go back without so much as a bowl for the vegetable stew.</em>`);
       showText([
         { text: "TO THE BROOK", action: () => setScene("home_blocked") },
@@ -210,7 +209,7 @@ function renderScene() {
       brookOptions.push({ text: "RETURN HOME", action: () => changeLocation("home") });
 
       if (levelState.hasWood && !levelState.hasBowl) {
-        brookOptions.unshift({ text: "\"I need you to make a bowl for me...\"", action: () => { screenText = ""; setScene("beaver_carve_bowl"); } });
+        brookOptions.unshift({ text: 'Myopus: "I need you to make a bowl for me..."', action: () => { screenTextBlocks = []; setScene("beaver_carve_bowl"); } });
       }
       
       if (levelState.hasBowl && !levelState.hasWater && !levelState.bowlPlaced) {
@@ -223,7 +222,7 @@ function renderScene() {
     case "beaver_repel":
       appendText(`<em>You attempt to push past the Beaver, but it is many times your size, and easily repels you.</em>`);
       showText([
-        { text: "...", action: () => { screenText = ""; setScene("brook"); } }
+        { text: "...", action: () => { screenTextBlocks = []; setScene("brook"); } }
       ]);
       break;
 
@@ -237,40 +236,40 @@ function renderScene() {
     case "beaver_dialogue_1":
       appendText(`<em>A fallen log over a brook. You’ve crossed through the log a few times to avoid the brook and the thicket on each side, but today, you notice something unusual. A Beaver seems to have taken residence within the log.</em>`);
       showText([
-        { text: "\"I must cross the brook. Please let me through.\"", action: () => setScene("beaver_dialogue_2") }
+        { text: 'Myopus: "I must cross the brook. Please let me through."', action: () => setScene("beaver_dialogue_2") }
       ]);
       break;
     
     case "beaver_dialogue_2":
-      appendText(`"I must cross the brook. Please let me through."\n\nBeaver: "I’m afraid not. This is my log."`);
+      appendText(`Myopus: "I must cross the brook. Please let me through."\n\nBeaver: "I’m afraid not. This is my log."`);
       showText([
-        { text: "\"You must be mistaken. I have crossed through this log many times before today, and—\"", action: () => setScene("beaver_dialogue_3") }
+        { text: 'Myopus: "You must be mistaken. I have crossed through this log many times before today, and—"', action: () => setScene("beaver_dialogue_3") }
       ]);
       break;
 
     case "beaver_dialogue_3":
-      appendText(`"You must be mistaken. I have crossed through this log many times before today, and—"\n\nBeaver: "Yes, before today. This morning, my home was destroyed. The trees were shattered. The lake became cloudy and was filled with thick, foul water. Many of my cousins have fallen ill."`);
+      appendText(`Myopus: "You must be mistaken. I have crossed through this log many times before today, and—"\n\nBeaver: "Yes, before today. This morning, my home was destroyed. The trees were shattered. The lake became cloudy and was filled with thick, foul water. Many of my cousins have fallen ill."`);
       showText([
-        { text: "\"My partner is ill as well. You understand then that my time is limited. You must let me pass.\"", action: () => setScene("beaver_dialogue_4") }
+        { text: 'Myopus: "My partner is ill as well. You understand then that my time is limited. You must let me pass."', action: () => setScene("beaver_dialogue_4") }
       ]);
       break;
 
     case "beaver_dialogue_4":
       levelState.metBeaver = true;
-      appendText(`"My partner is ill as well. You understand then that my time is limited. You must let me pass."\n\nBeaver: "I am far too tired from the morning’s journey to move now. If you wish to pass, you must help me regain my energy…perhaps a vegetable stew would do the trick."`);
+      appendText(`Myopus: "My partner is ill as well. You understand then that my time is limited. You must let me pass."\n\nBeaver: "I am far too tired from the morning’s journey to move now. If you wish to pass, you must help me regain my energy…perhaps a vegetable stew would do the trick."`);
       
       let d4Options = [
-        { text: "TRY TO PROCEED", action: () => { screenText = ""; setScene("beaver_repel"); } },
+        { text: "TRY TO PROCEED", action: () => { screenTextBlocks = []; setScene("beaver_repel"); } },
         { text: "RETURN HOME", action: () => changeLocation("home") }
       ];
       if (levelState.hasWood) {
-        d4Options.unshift({ text: "\"I need you to make a bowl for me, so I can make your soup.\"", action: () => { screenText = ""; setScene("beaver_carve_bowl"); } });
+        d4Options.unshift({ text: 'Myopus: "I need you to make a bowl for me, so I can make your soup."', action: () => { screenTextBlocks = []; setScene("beaver_carve_bowl"); } });
       }
       showText(d4Options);
       break;
 
     case "beaver_carve_bowl":
-      appendText(`"I need you to make a bowl for me, so I can make your soup."\n\nBeaver: "Very well. Give it here, and I shall gnaw it into a bowl."`);
+      appendText(`Myopus: "I need you to make a bowl for me, so I can make your soup."\n\nBeaver: "Very well. Give it here, and I shall gnaw it into a bowl."`);
       showText([
         { text: "GIVE THE WOOD", action: () => setScene("beaver_carve_result") }
       ]);
@@ -289,14 +288,14 @@ function renderScene() {
     case "beaver_give_stew":
       appendText(`Beaver: "Ahhh…you have done well, friend. You may pass…but let me offer you a word of advice."`);
       showText([
-        { text: "\"Save your breath.\"", action: () => setScene("beaver_end_rude") },
-        { text: "\"Go ahead.\"", action: () => setScene("beaver_end_polite") }
+        { text: 'Myopus: "Save your breath."', action: () => setScene("beaver_end_rude") },
+        { text: 'Myopus: "Go ahead."', action: () => setScene("beaver_end_polite") }
       ]);
       break;
 
     case "beaver_end_rude":
       levelState.stewGiven = true;
-      appendText(`"Save your breath."\n\nBeaver: "Fine. I won’t be surprised to find your corpse on tomorrow’s walk."\n\n<em>With that, the Beaver moves out of the log, and accepts the stew. You enter deeper into the forest.</em>`);
+      appendText(`Myopus: "Save your breath."\n\nBeaver: "Fine. I won’t be surprised to find your corpse on tomorrow’s walk."\n\n<em>With that, the Beaver moves out of the log, and accepts the stew. You enter deeper into the forest.</em>`);
       showText([
         { text: "Proceed to Chapter 2", action: () => transitionToLevel2() } 
       ]);
@@ -304,7 +303,7 @@ function renderScene() {
     
     case "beaver_end_polite":
       levelState.stewGiven = true;
-      appendText(`"Go ahead."\n\nBeaver: "If you seek the cure of cures, you are about to enter a much more dangerous part of the forest. A little thing like you…you ought to look after yourself carefully. You will not find the creatures there to be as friendly as I…"\n\n<em>With that, the Beaver moves out of the log, and accepts the stew. You enter deeper into the forest.</em>`);
+      appendText(`Myopus: "Go ahead."\n\nBeaver: "If you seek the cure of cures, you are about to enter a much more dangerous part of the forest. A little thing like you…you ought to look after yourself carefully. You will not find the creatures there to be as friendly as I…"\n\n<em>With that, the Beaver moves out of the log, and accepts the stew. You enter deeper into the forest.</em>`);
       showText([
         { text: "Proceed to Chapter 2", action: () => transitionToLevel2() } 
       ]);
@@ -363,34 +362,34 @@ function renderScene() {
       levelState.fireLit = true;
       levelState.hasSticks = false;
       appendText(`<em>You place the sticks into the embers and watch as a fire begins to take shape.</em>`);
-      showText([{ text: "...", action: () => { screenText = ""; setScene("firepit"); } }]);
+      showText([{ text: "...", action: () => { screenTextBlocks = []; setScene("firepit"); } }]);
       break;
 
     case "firepit_heat_water":
       appendText(`<em>You place the bowl on top of the stone surface.\nYou watch as the water begins to heat up.</em>`);
-      showText([{ text: "...", action: () => { screenText = ""; setScene("firepit"); } }]);
+      showText([{ text: "...", action: () => { screenTextBlocks = []; setScene("firepit"); } }]);
       break;
 
     case "firepit_empty_bowl":
       appendText(`<em>You place the bowl on top of the stone surface.\nNothing seems to happen, so you take the bowl back. Maybe you need some liquid?</em>`);
-      showText([{ text: "...", action: () => { screenText = ""; setScene("firepit"); } }]);
+      showText([{ text: "...", action: () => { screenTextBlocks = []; setScene("firepit"); } }]);
       break;
 
     case "firepit_veggies_no_fire":
       appendText(`<em>What would putting the veggies on the stone accomplish? There's no bowl to hold them.</em>`);
-      showText([{ text: "...", action: () => { screenText = ""; setScene("firepit"); } }]);
+      showText([{ text: "...", action: () => { screenTextBlocks = []; setScene("firepit"); } }]);
       break;
 
     case "firepit_veggies_fail":
       appendText(`<em>You shouldn’t just put the veggies straight on the hot stone.</em>`);
-      showText([{ text: "...", action: () => { screenText = ""; setScene("firepit"); } }]);
+      showText([{ text: "...", action: () => { screenTextBlocks = []; setScene("firepit"); } }]);
       break;
 
     case "firepit_make_stew":
       levelState.hasVeggies = false;
       levelState.hasStew = true;
       appendText(`<em>You put the veggies in the bowl of hot water. Finally...vegetable stew.</em>`);
-      showText([{ text: "...", action: () => { screenText = ""; setScene("firepit"); } }]);
+      showText([{ text: "...", action: () => { screenTextBlocks = []; setScene("firepit"); } }]);
       break;
 
     case "firepit_pickup_stew":
@@ -463,7 +462,13 @@ function showText(options = []) {
   if (!container) return;
 
   const title = LOC_TITLES[levelState.currentLocation] || "";
-  const body = highlightGoldenMoss(normalizeStoryText(screenText));
+  
+  // Format each appended block. The last block stays normal, earlier ones get the .read-text class.
+  const body = screenTextBlocks.map((block, idx) => {
+    const isLast = idx === screenTextBlocks.length - 1;
+    const formatted = highlightGoldenMoss(normalizeStoryText(block));
+    return isLast ? formatted : `<span class="read-text">${formatted}</span>`;
+  }).join('\n\n');
 
   let html = `<div class="location-title">${title}</div>`;
   html += `<div class="story-text">${body}</div>`;
