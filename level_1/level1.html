@@ -22,10 +22,41 @@
       margin: 0;
       min-height: 100vh;
       position: relative;
-      background: #e6dfd3; /* Parchment base color */
-      color: #2c1e16; /* Dark ink brown */
+      background: #e6dfd3;
+      color: #2c1e16;
       font-family: "Georgia", "Times New Roman", serif;
     }
+    
+    #inventory-panel {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: rgba(10, 24, 32, 0.85);
+      color: rgba(255, 235, 220, 0.9);
+      padding: 15px 25px;
+      border: 1px solid rgba(255, 235, 220, 0.3);
+      display: none;
+      z-index: 100;
+      font-family: "Museo Slab 500", serif;
+    }
+    #inventory-panel h3 {
+      margin: 0 0 10px 0;
+      font-size: 1.2rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      border-bottom: 1px solid rgba(255, 235, 220, 0.3);
+      padding-bottom: 5px;
+    }
+    #inventory-list {
+      list-style-type: square;
+      margin: 0;
+      padding: 0 0 0 15px;
+    }
+    #inventory-list li {
+      margin-bottom: 6px;
+      font-size: 1rem;
+    }
+
     #sceneBackdrop {
       position: fixed;
       inset: 0;
@@ -58,9 +89,9 @@
       position: relative;
       z-index: 1;
       max-width: 42rem;
-      margin: 4rem auto; /* Added margin to float it slightly off the top edge */
+      margin: 4rem auto;
       padding: 3rem 2.5rem;
-      background: rgba(230, 223, 211, 0.8); /* 80% opaque cream matching the base */
+      background: rgba(230, 223, 211, 0.8);
       border-radius: 12px;
       border: 1px solid rgba(44, 30, 22, 0.15);
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
@@ -80,7 +111,6 @@
       font-size: 1.15rem;
       margin-bottom: 2.5rem;
     }
-
     .story-text .golden-moss {
       color: #b8860b;
       font-style: inherit;
@@ -91,7 +121,6 @@
         0 0 24px rgba(255, 170, 40, 0.55);
     }
     
-    /* Interactive Elements Styling */
     .interactable {
       font-weight: bold;
       text-decoration: underline;
@@ -135,6 +164,10 @@
   </style>
 </head>
 <body>
+  <div id="inventory-panel">
+    <h3>Inventory</h3>
+    <ul id="inventory-list"></ul>
+  </div>
   <div id="sceneBackdrop" aria-hidden="true">
     <div class="scene-backdrop-photo"></div>
     <div class="scene-backdrop-overlays"></div>

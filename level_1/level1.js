@@ -1,10 +1,3 @@
-/*
-========================================
-LEVEL 1: THE MOSSLANDS
-Text Adventure Core Script
-========================================
-*/
-
 const BACKDROP_IMAGES = {
   home: "images/home_bg.png",
   brook: "images/brook_bg.png",
@@ -20,7 +13,6 @@ const LOC_TITLES = {
 };
 
 const BACKDROP_PHOTO_FADE_SEC = 2;
-/** 0–1; only the photo layer (story panel stays readable over parchment). */
 const BACKDROP_PHOTO_OPACITY = 0.55;
 
 if (typeof document !== "undefined") {
@@ -30,7 +22,6 @@ if (typeof document !== "undefined") {
   );
 }
 
-/** Locations whose backdrop has already been shown (fade only on first visit). */
 const backdropLocationsShown = new Set();
 
 let levelState = {
@@ -67,9 +58,8 @@ function appendText(newText) {
   screenText += newText;
 }
 
-// Global handler for inline click events
 window.handleInline = function(action) {
-  screenText = ""; // Clear text so the action result replaces the current description
+  screenText = ""; 
   switch(action) {
     case 'pickup_wood':
       levelState.hasWood = true;
@@ -131,20 +121,9 @@ function applySceneBackdrop() {
   const root = document.documentElement;
   const photoEl = document.querySelector(".scene-backdrop-photo");
   const loc = levelState.currentLocation;
-  let image = "none";
-  let photoOpacity = BACKDROP_PHOTO_OPACITY;
-
-  if (loc === "home") {
-    image = `url("${BACKDROP_IMAGES.home}")`;
-  } else if (loc === "brook") {
-    image = `url("${BACKDROP_IMAGES.brook}")`;
-  } else if (loc === "firepit") {
-    image = `url("${BACKDROP_IMAGES.firepit}")`;
-  } else if (loc === "patch") {
-    image = `url("${BACKDROP_IMAGES.patch}")`;
-  } else {
-    photoOpacity = 0;
-  }
+  
+  const image = BACKDROP_IMAGES[loc] ? `url("${BACKDROP_IMAGES[loc]}")` : "none";
+  const photoOpacity = BACKDROP_IMAGES[loc] ? BACKDROP_PHOTO_OPACITY : 0;
 
   if (photoOpacity <= 0) {
     if (photoEl) {
@@ -182,24 +161,18 @@ function applySceneBackdrop() {
 
 function renderScene() {
   applySceneBackdrop();
+  updateInventory();
 
   switch (levelState.currentScene) {
-      
-    // ==========================================
-    // (0, 0) HOME EXTERIOR
-    // ==========================================
     case "home":
-      let homeText = "";
       if (!levelState.visitedHome) {
-        homeText = `<em>You step out of your burrow to a view you’ve seen hundreds of times. With your partner’s condition occupying your mind, the flowers and mosses that surround you seem to have lost all color. The crisp, clean air of the taiga that once comforted you now seems hostile. You begin to think of what might happen if you can’t find the golden moss in time — you can’t even bear the thought. You must find it. But where to begin?</em>`;
+        appendText(`<em>You step out of your burrow to a view you’ve seen hundreds of times. With your partner’s condition occupying your mind, the flowers and mosses that surround you seem to have lost all color. The crisp, clean air of the taiga that once comforted you now seems hostile. You begin to think of what might happen if you can’t find the golden moss in time — you can’t even bear the thought. You must find it. But where to begin?</em>`);
         levelState.visitedHome = true;
       } else if (levelState.metBeaver && !levelState.stewGiven) {
-        homeText = `<em>Just as bleak as before. The Beaver blocks your way past the Brook.</em>`;
+        appendText(`<em>Just as bleak as before. The Beaver blocks your way past the Brook.</em>`);
       } else {
-        homeText = `<em>The same as before. The taiga air is crisp.</em>`;
+        appendText(`<em>The same as before. The taiga air is crisp.</em>`);
       }
-
-      appendText(homeText);
       showText([
         { text: "TO THE BROOK", action: () => {
           if (levelState.metBeaver && !levelState.hasWood && !levelState.hasBowl && !levelState.hasStew && !levelState.stewGiven) {
@@ -213,7 +186,7 @@ function renderScene() {
       break;
 
     case "home_blocked":
-      screenText = ""; // Replace rather than append
+      screenText = "";
       appendText(`<em>It’s pointless to go back without so much as a bowl for the vegetable stew.</em>`);
       showText([
         { text: "TO THE BROOK", action: () => setScene("home_blocked") },
@@ -221,9 +194,6 @@ function renderScene() {
       ]);
       break;
 
-    // ==========================================
-    // (-1, 0) BROOK / BEAVER
-    // ==========================================
     case "brook":
       if (!levelState.metBeaver) {
         setScene("beaver_dialogue_1");
@@ -264,7 +234,6 @@ function renderScene() {
       ]);
       break;
 
-    // --- BEAVER INTRO SEQUENCE ---
     case "beaver_dialogue_1":
       appendText(`<em>A fallen log over a brook. You’ve crossed through the log a few times to avoid the brook and the thicket on each side, but today, you notice something unusual. A Beaver seems to have taken residence within the log.</em>`);
       showText([
@@ -300,7 +269,6 @@ function renderScene() {
       showText(d4Options);
       break;
 
-    // --- BEAVER CRAFTING ---
     case "beaver_carve_bowl":
       appendText(`"I need you to make a bowl for me, so I can make your soup."\n\nBeaver: "Very well. Give it here, and I shall gnaw it into a bowl."`);
       showText([
@@ -318,7 +286,6 @@ function renderScene() {
       ]);
       break;
 
-    // --- BEAVER ENDING ---
     case "beaver_give_stew":
       appendText(`Beaver: "Ahhh…you have done well, friend. You may pass…but let me offer you a word of advice."`);
       showText([
@@ -331,7 +298,7 @@ function renderScene() {
       levelState.stewGiven = true;
       appendText(`"Save your breath."\n\nBeaver: "Fine. I won’t be surprised to find your corpse on tomorrow’s walk."\n\n<em>With that, the Beaver moves out of the log, and accepts the stew. You enter deeper into the forest.</em>`);
       showText([
-        { text: "Proceed to Chapter 2", action: () => window.location.href = "../level_2/level2.html" } 
+        { text: "Proceed to Chapter 2", action: () => transitionToLevel2() } 
       ]);
       break;
     
@@ -339,13 +306,10 @@ function renderScene() {
       levelState.stewGiven = true;
       appendText(`"Go ahead."\n\nBeaver: "If you seek the cure of cures, you are about to enter a much more dangerous part of the forest. A little thing like you…you ought to look after yourself carefully. You will not find the creatures there to be as friendly as I…"\n\n<em>With that, the Beaver moves out of the log, and accepts the stew. You enter deeper into the forest.</em>`);
       showText([
-        { text: "Proceed to Chapter 2", action: () => window.location.href = "../level_2/level2.html" } 
+        { text: "Proceed to Chapter 2", action: () => transitionToLevel2() } 
       ]);
       break;
 
-    // ==========================================
-    // (1, 0) FIREPIT
-    // ==========================================
     case "firepit":
       let fpText = "<em>";
       let itemUsed = levelState.hasWood || levelState.hasBowl || levelState.hasStew || levelState.stewGiven || levelState.bowlPlaced;
@@ -381,10 +345,10 @@ function renderScene() {
 
       appendText(fpText);
 
-      let fpOptions = [];
-      fpOptions.push({ text: "RETURN HOME", action: () => changeLocation("home") });
-      fpOptions.push({ text: "TO THE PATCH", action: () => changeLocation("patch") });
-      showText(fpOptions);
+      showText([
+        { text: "RETURN HOME", action: () => changeLocation("home") },
+        { text: "TO THE PATCH", action: () => changeLocation("patch") }
+      ]);
       break;
 
     case "firepit_pickup_wood":
@@ -399,46 +363,34 @@ function renderScene() {
       levelState.fireLit = true;
       levelState.hasSticks = false;
       appendText(`<em>You place the sticks into the embers and watch as a fire begins to take shape.</em>`);
-      showText([
-        { text: "...", action: () => { screenText = ""; setScene("firepit"); } }
-      ]);
+      showText([{ text: "...", action: () => { screenText = ""; setScene("firepit"); } }]);
       break;
 
     case "firepit_heat_water":
       appendText(`<em>You place the bowl on top of the stone surface.\nYou watch as the water begins to heat up.</em>`);
-      showText([
-        { text: "...", action: () => { screenText = ""; setScene("firepit"); } }
-      ]);
+      showText([{ text: "...", action: () => { screenText = ""; setScene("firepit"); } }]);
       break;
 
     case "firepit_empty_bowl":
       appendText(`<em>You place the bowl on top of the stone surface.\nNothing seems to happen, so you take the bowl back. Maybe you need some liquid?</em>`);
-      showText([
-        { text: "...", action: () => { screenText = ""; setScene("firepit"); } }
-      ]);
+      showText([{ text: "...", action: () => { screenText = ""; setScene("firepit"); } }]);
       break;
 
     case "firepit_veggies_no_fire":
-      appendText(`<em>What would putting the veggies on the stone accomplish? There's no fire.</em>`);
-      showText([
-        { text: "...", action: () => { screenText = ""; setScene("firepit"); } }
-      ]);
+      appendText(`<em>What would putting the veggies on the stone accomplish? There's no bowl to hold them.</em>`);
+      showText([{ text: "...", action: () => { screenText = ""; setScene("firepit"); } }]);
       break;
 
     case "firepit_veggies_fail":
       appendText(`<em>You shouldn’t just put the veggies straight on the hot stone.</em>`);
-      showText([
-        { text: "...", action: () => { screenText = ""; setScene("firepit"); } }
-      ]);
+      showText([{ text: "...", action: () => { screenText = ""; setScene("firepit"); } }]);
       break;
 
     case "firepit_make_stew":
       levelState.hasVeggies = false;
       levelState.hasStew = true;
       appendText(`<em>You put the veggies in the bowl of hot water. Finally...vegetable stew.</em>`);
-      showText([
-        { text: "...", action: () => { screenText = ""; setScene("firepit"); } }
-      ]);
+      showText([{ text: "...", action: () => { screenText = ""; setScene("firepit"); } }]);
       break;
 
     case "firepit_pickup_stew":
@@ -449,32 +401,22 @@ function renderScene() {
       ]);
       break;
 
-    // ==========================================
-    // (1, 1) THE PATCH
-    // ==========================================
     case "patch":
       let veggiesGone = levelState.hasVeggies || levelState.hasStew || levelState.stewGiven;
-      let ptText = veggiesGone
+      appendText(veggiesGone
         ? "<em>A few wild onions and carrots…used to be here. Now it’s just dirt.</em>"
-        : "<em>A few <span class='interactable item-veggies' onclick='handleInline(\"dig_up\")'>wild onions and carrots</span>.</em>";
-      
-      appendText(ptText);
-
-      let ptOptions = [];
-      ptOptions.push({ text: "TO THE PIT", action: () => changeLocation("firepit") });
-      showText(ptOptions);
+        : "<em>A few <span class='interactable item-veggies' onclick='handleInline(\"dig_up\")'>wild onions and carrots</span>.</em>"
+      );
+      showText([{ text: "TO THE PIT", action: () => changeLocation("firepit") }]);
       break;
 
     case "patch_dig":
       appendText(`<em>You dig some of the vegetables up from the dirt. You gather the smallest onions and carrots you can find and put them in your sack.</em>`);
-      showText([
-        { text: "TO THE PIT", action: () => changeLocation("firepit") }
-      ]);
+      showText([{ text: "TO THE PIT", action: () => changeLocation("firepit") }]);
       break;
   }
 }
 
-/** Wraps “golden moss” in a glowing span; skips matches already inside a <span> tag. */
 function spanDepthAt(html, index) {
   const slice = html.slice(0, index);
   let depth = 0;
@@ -540,5 +482,76 @@ function showText(options = []) {
   });
 }
 
-// Init
+function transitionToLevel2() {
+  const overlay = document.createElement("div");
+  overlay.style.position = "fixed";
+  overlay.style.top = "0";
+  overlay.style.left = "0";
+  overlay.style.width = "100vw";
+  overlay.style.height = "100vh";
+  overlay.style.backgroundColor = "black";
+  overlay.style.opacity = "0";
+  overlay.style.transition = "opacity 1.5s ease-in-out";
+  overlay.style.zIndex = "9999";
+  overlay.style.pointerEvents = "all"; 
+
+  document.body.appendChild(overlay);
+  void overlay.offsetWidth;
+  overlay.style.opacity = "1";
+
+  setTimeout(() => {
+    window.location.href = "../level_2/level2.html";
+  }, 1500); 
+}
+
+function fadeInFromBlack() {
+  const overlay = document.createElement("div");
+  overlay.style.position = "fixed";
+  overlay.style.top = "0";
+  overlay.style.left = "0";
+  overlay.style.width = "100vw";
+  overlay.style.height = "100vh";
+  overlay.style.backgroundColor = "black";
+  overlay.style.opacity = "1";
+  overlay.style.transition = "opacity 1.5s ease-in-out";
+  overlay.style.zIndex = "9999";
+  overlay.style.pointerEvents = "none";
+
+  document.body.appendChild(overlay);
+  void overlay.offsetWidth;
+  overlay.style.opacity = "0";
+
+  setTimeout(() => {
+    overlay.remove();
+  }, 1500);
+}
+
+function updateInventory() {
+  const panel = document.getElementById("inventory-panel");
+  const list = document.getElementById("inventory-list");
+  if (!panel || !list) return;
+
+  const items = [];
+
+  if (levelState.hasWood) items.push("Chunk of Wood");
+  if (levelState.hasSticks) items.push("Twigs and Splinters");
+  if (levelState.hasVeggies) items.push("Wild Onions and Carrots");
+  
+  if (levelState.hasBowl) {
+    items.push(levelState.hasWater ? "Bowl of Water" : "Wooden Bowl");
+  }
+  
+  if (levelState.hasStew && !levelState.bowlPlaced && !levelState.stewGiven) {
+    items.push("Vegetable Stew");
+  }
+
+  if (items.length === 0) {
+    panel.style.display = "none";
+  } else {
+    panel.style.display = "block";
+    list.innerHTML = items.map(item => `<li>${item}</li>`).join("");
+  }
+}
+
+fadeInFromBlack();
 changeLocation("home");

@@ -429,4 +429,34 @@ document.getElementById("skipPuzzleTestBtn")?.addEventListener("click", () => {
   if (typeof activePuzzleFinish === "function") activePuzzleFinish();
 });
 
+function fadeInFromBlack() {
+  const overlay = document.createElement("div");
+  overlay.style.position = "fixed";
+  overlay.style.top = "0";
+  overlay.style.left = "0";
+  overlay.style.width = "100vw";
+  overlay.style.height = "100vh";
+  overlay.style.backgroundColor = "black";
+  overlay.style.opacity = "1"; // Start fully black
+  overlay.style.transition = "opacity 1.5s ease-in-out";
+  overlay.style.zIndex = "9999";
+  overlay.style.pointerEvents = "none"; // Allow clicks to pass through to the game
+
+  document.body.appendChild(overlay);
+
+  // Force reflow
+  void overlay.offsetWidth;
+
+  // Trigger fade in
+  overlay.style.opacity = "0";
+
+  // Clean up the DOM once the transition is complete
+  setTimeout(() => {
+    overlay.remove();
+  }, 1500);
+}
+
+// Call this immediately in level2.js
+fadeInFromBlack();
+
 setScene("forest_entry");
