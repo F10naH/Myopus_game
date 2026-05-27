@@ -23,15 +23,20 @@
         rgba(10, 14, 12, 0.95) 100%
       );
       --scene-photo-opacity: 0;
+      --scene-photo-fade-duration: 2s;
     }
+    
     body {
       margin: 0;
       min-height: 100vh;
       position: relative;
       background: #121a16;
       color: #e8ebe4;
-      font-family: Georgia, "Times New Roman", serif;
+      font-family: "Georgia", "Times New Roman", serif;
+      overflow-x: hidden;
     }
+
+    /* --- SCENE BACKDROP --- */
     #sceneBackdrop {
       position: fixed;
       inset: 0;
@@ -47,7 +52,7 @@
       background-position: var(--scene-img-position);
       background-repeat: no-repeat;
       opacity: var(--scene-photo-opacity);
-      transition: opacity var(--scene-photo-fade-duration, 2s) ease-in-out;
+      transition: opacity var(--scene-photo-fade-duration) ease-in-out;
     }
     .scene-backdrop-photo.scene-backdrop-photo--no-transition {
       transition: none;
@@ -60,27 +65,134 @@
       background-position: center center, center center;
       background-repeat: no-repeat, no-repeat;
     }
-    #storyPanel {
-      position: relative;
+
+    /* --- VN PORTRAITS --- */
+    #vn-portraits {
+      position: fixed;
+      inset: 0;
       z-index: 1;
-      max-width: 42rem;
-      margin: 0 auto;
-      padding: 2rem 1.25rem 3rem;
+      pointer-events: none;
     }
-    .story-text {
-      white-space: pre-wrap;
-      line-height: 1.65;
-      font-size: 1.05rem;
-      margin-bottom: 1.5rem;
-      text-shadow:
-        0 0 1.25rem rgba(0, 0, 0, 0.9),
-        0 2px 14px rgba(0, 0, 0, 0.75);
+    .vn-portrait {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 300px;
+      height: 450px;
+      transition: opacity 0.5s, transform 0.5s;
+    }
+    .vn-portrait.left { left: 5vw; }
+    .vn-portrait.right { right: 5vw; }
+    .vn-portrait.hidden { opacity: 0; transform: translateY(calc(-50% + 40px)); }
+    
+    /* Bouncing Animation */
+    .vn-portrait.speaking { animation: vn-bounce 0.4s infinite alternate ease-in-out; }
+    @keyframes vn-bounce {
+      from { transform: translateY(-50%); }
+      to { transform: translateY(calc(-50% - 15px)); }
     }
 
-    .story-text .golden-moss {
+    .vn-portrait img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      object-position: bottom;
+    }
+    
+    .portrait-placeholder {
+      position: absolute; bottom: 80px; left: 0; right: 0;
+      text-align: center; background: rgba(0,0,0,0.6); color: white;
+      padding: 10px; border-radius: 8px; font-family: sans-serif;
+    }
+    .vn-portrait img[style*="display: none"] + .portrait-placeholder { display: block; }
+    .vn-portrait img + .portrait-placeholder { display: none; }
+
+    /* --- STORY PANEL & BUBBLES --- */
+    #storyPanel {
+      position: relative;
+      z-index: 2;
+      max-width: 44rem;
+      margin: 4rem auto;
+      padding: 3rem 2.5rem;
+      background: rgba(18, 26, 22, 0.85);
+      border-radius: 12px;
+      border: 1px solid rgba(90, 122, 102, 0.3);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+    }
+    
+    .location-title {
+      text-align: center;
+      font-weight: bold;
+      font-size: 2.2rem;
+      margin-bottom: 2rem;
+      letter-spacing: 2px;
+      font-family: "Palatino Linotype", "Book Antiqua", Palatino, serif;
+    }
+
+    .story-text-container {
+      display: flex;
+      flex-direction: column;
+      gap: 1.85rem; /* Increased spacing between dialogue blocks */
+      margin-bottom: 1rem;
+    }
+
+    .dialogue-row { display: flex; width: 100%; }
+    .dialogue-row.myopus { justify-content: flex-start; }
+    .dialogue-row.tyto { justify-content: flex-end; } /* Tyto replacing Beaver */
+    .dialogue-row.narrator { justify-content: center; }
+
+    /* Dim previous text blocks */
+    .dialogue-row.read-text { opacity: 0.45; transition: opacity 0.4s ease; }
+
+    .bubble {
+      position: relative;
+      max-width: 85%;
+      padding: 1rem 1.5rem;
+      line-height: 1.85; /* Increased line spacing within the text */
+      font-size: 1.15rem;
+      border-radius: 12px;
+      text-shadow: 0 0 1.25rem rgba(0, 0, 0, 0.9), 0 2px 14px rgba(0, 0, 0, 0.75);
+    }
+
+    .bubble.narrator {
+      background: transparent;
+      text-align: center;
+      max-width: 100%;
+      padding: 0.5rem;
+      font-style: italic; /* Non-dialogue text is italicized */
+    }
+
+    /* Player Bubble (Adapted to Dark Theme) */
+    .bubble.myopus {
+      background: rgba(30, 43, 36, 0.9);
+      border: 1px solid rgba(90, 122, 102, 0.4);
+      border-bottom-left-radius: 0;
+      box-shadow: 2px 2px 8px rgba(0,0,0,0.3);
+    }
+    .bubble.myopus::after {
+      content: ''; position: absolute; bottom: -1px; left: -12px;
+      border-width: 12px 12px 0 0; border-style: solid;
+      border-color: rgba(30, 43, 36, 0.9) transparent transparent transparent;
+    }
+
+    /* NPC Bubble (Adapted to Dark Theme) */
+    .bubble.tyto {
+      background: rgba(22, 34, 28, 0.9);
+      border: 1px solid rgba(90, 122, 102, 0.4);
+      border-bottom-right-radius: 0;
+      box-shadow: 2px 2px 8px rgba(0,0,0,0.3);
+    }
+    .bubble.tyto::after {
+      content: ''; position: absolute; bottom: -1px; right: -12px;
+      border-width: 12px 0 0 12px; border-style: solid;
+      border-color: rgba(22, 34, 28, 0.9) transparent transparent transparent;
+    }
+
+    .golden-moss {
       color: #f4d56a;
       font-style: inherit;
-      font-weight: 500;
+      font-weight: 600;
       text-shadow:
         0 0 8px rgba(255, 220, 120, 0.95),
         0 0 18px rgba(255, 190, 60, 0.8),
@@ -88,23 +200,36 @@
         0 0 1.25rem rgba(0, 0, 0, 0.9),
         0 2px 14px rgba(0, 0, 0, 0.75);
     }
+
+    /* --- BUTTONS --- */
+    .button-container {
+      display: flex;
+      justify-content: center;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+      margin-top: 3.5rem; /* Larger spacing between text and buttons */
+    }
     #storyPanel button {
-      display: block;
-      width: 100%;
-      max-width: 20rem;
-      margin: 0.6rem 0;
-      padding: 0.75rem 1rem;
-      font-size: 1rem;
-      border: 1px solid #5a7a66;
-      border-radius: 8px;
-      background: #2a3d32;
-      color: #f0f4ef;
+      flex: 0 1 auto;
+      width: auto;
+      padding: 0.5rem 1rem;
+      font-size: 0.95rem;
+      border: none;
+      border-top: 1px solid rgba(232, 235, 228, 0.3);
+      border-bottom: 1px solid rgba(232, 235, 228, 0.3);
+      background: transparent;
+      color: #e8ebe4;
       cursor: pointer;
       font-family: inherit;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      transition: background 0.2s;
     }
     #storyPanel button:hover {
-      background: #3a5244;
+      background: rgba(232, 235, 228, 0.05);
     }
+
+    /* --- PUZZLE ELEMENTS --- */
     #gameFrame {
       position: relative;
       z-index: 2;
@@ -132,18 +257,30 @@
     #skipPuzzleTestBtn:hover {
       background: rgba(55, 44, 40, 0.95);
     }
+
+    /* --- ANIMATIONS --- */
+    @keyframes tapFade {
+      0% { opacity: 0.25; }
+      50% { opacity: 0.9; }
+      100% { opacity: 0.25; }
+    }
   </style>
 </head>
 <body>
+  <audio id="bg-music" src="../music/the wild.mp3" loop></audio>
+
   <div id="sceneBackdrop" aria-hidden="true">
     <div class="scene-backdrop-photo"></div>
     <div class="scene-backdrop-overlays"></div>
   </div>
+
   <div id="storyPanel">
     <div id="adventureBox"></div>
   </div>
+
   <iframe id="gameFrame" title="Puzzle"></iframe>
   <button type="button" id="skipPuzzleTestBtn" hidden>Skip puzzle (test)</button>
+
   <script src="level2.js"></script>
 </body>
 </html>

@@ -85,7 +85,7 @@
     #vn-portraits {
       position: fixed;
       inset: 0;
-      z-index: 1; /* Below the text panel, above the background */
+      z-index: 1;
       pointer-events: none;
     }
     .vn-portrait {
@@ -114,7 +114,7 @@
       object-position: bottom;
     }
     
-    /* Temporary placeholders in case images aren't found */
+    /* Temporary placeholders */
     .portrait-placeholder {
       position: absolute; bottom: 80px; left: 0; right: 0;
       text-align: center; background: rgba(0,0,0,0.6); color: white;
@@ -232,11 +232,17 @@
       font-family: inherit; text-transform: uppercase; letter-spacing: 1px; transition: background 0.2s;
     }
     #storyPanel button:hover { background: rgba(44, 30, 22, 0.05); }
+
+    /* Overlay pulse animation */
+    @keyframes tapFade {
+      0% { opacity: 0.25; }
+      50% { opacity: 0.9; }
+      100% { opacity: 0.25; }
+    }
   </style>
 </head>
 <body>
-
-  <!-- UI OVERLAYS -->
+<audio id="bg-music" src="../music/Setting Off.mp3" loop></audio>
   <div id="inventory-panel">
     <h3>Inventory</h3>
     <ul id="inventory-list"></ul>
@@ -247,9 +253,8 @@
     <div class="scene-backdrop-overlays"></div>
   </div>
 
-  <!-- VN CHARACTER PORTRAITS -->
   <div id="vn-portraits">
-    <div id="portrait-myopus" class="vn-portrait left">
+    <div id="portrait-myopus" class="vn-portrait left hidden">
       <img src="images/myopus.png" alt="Myopus" onerror="this.style.display='none'">
       <div class="portrait-placeholder">Myopus</div>
     </div>
@@ -259,7 +264,6 @@
     </div>
   </div>
 
-  <!-- TEXT AREA -->
   <div id="storyPanel">
     <div id="adventureBox"></div>
   </div>
@@ -291,7 +295,6 @@
     let currentTypingToken = {};
     let skipTyping = false;
 
-    // Skip typing effect if player clicks anywhere on the document body
     document.addEventListener('click', (e) => {
       if (e.target.tagName === 'BUTTON' || e.target.classList.contains('interactable')) return;
       skipTyping = true;
@@ -654,11 +657,6 @@
       // Handle VN Portraits Visibility & Bouncing
       const myopusPortrait = document.getElementById('portrait-myopus');
       const beaverPortrait = document.getElementById('portrait-beaver');
-      
-      // Keep Myopus on screen always. Show Beaver only at the brook once met.
-      myopusPortrait.classList.remove('hidden');
-      if (levelState.currentLocation === 'brook' && levelState.metBeaver) beaverPortrait.classList.remove('hidden');
-      else beaverPortrait.classList.add('hidden');
 
       if (currentLine.speaker === 'narrator') {
         myopusPortrait.classList.add('hidden');
@@ -695,6 +693,7 @@
         });
       }
     }
+
     function transitionToLevel2() {
       const overlay = document.createElement("div");
       overlay.style.position = "fixed"; overlay.style.top = "0"; overlay.style.left = "0";
@@ -707,22 +706,45 @@
       void overlay.offsetWidth;
       overlay.style.opacity = "1";
 
+      const bgMusic = document.getElementById("bg-music");
+      if (bgMusic) {
+        const fadeAudio = setInterval(() => {
+          if (bgMusic.volume > 0.1) {
+            bgMusic.volume -= 0.1;
+          } else {
+            clearInterval(fadeAudio);
+            bgMusic.pause();
+          }
+        }, 150);
+      }
+
       setTimeout(() => { window.location.href = "../level_2/level2.html"; }, 1500); 
     }
 
-    function fadeInFromBlack() {
+    function fadeInFromBlack(chapterText = "Tap to enter") {
       const overlay = document.createElement("div");
-      overlay.style.position = "fixed"; overlay.style.top = "0"; overlay.style.left = "0";
-      overlay.style.width = "100vw"; overlay.style.height = "100vh";
-      overlay.style.backgroundColor = "black"; overlay.style.opacity = "1";
-      overlay.style.transition = "opacity 1.5s ease-in-out"; overlay.style.zIndex = "9999";
-      overlay.style.pointerEvents = "none";
-
+      overlay.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: black; z-index: 9999; display: flex; justify-content: center; align-items: center; color: rgba(255, 235, 220, 0.7); font-family: 'Museo Slab 500', Georgia, serif; font-size: 1.2rem; letter-spacing: 0.2em; text-transform: uppercase; cursor: pointer; opacity: 1; transition: opacity 1.5s ease-in-out;";
+      
+      const textSpan = document.createElement("span");
+      textSpan.textContent = chapterText;
+      textSpan.style.animation = "tapFade 2.4s ease-in-out infinite";
+      overlay.appendChild(textSpan);
       document.body.appendChild(overlay);
-      void overlay.offsetWidth;
-      overlay.style.opacity = "0";
 
-      setTimeout(() => { overlay.remove(); }, 1500);
+      overlay.addEventListener("click", () => {
+        const bgMusic = document.getElementById("bg-music");
+        if (bgMusic) {
+          bgMusic.volume = 1;
+          bgMusic.play().catch(e => console.error("Audio play failed:", e));
+        }
+
+        overlay.style.opacity = "0";
+        overlay.style.pointerEvents = "none";
+
+        setTimeout(() => {
+          overlay.remove();
+        }, 1500);
+      });
     }
 
     function updateInventory() {
@@ -747,8 +769,16 @@
     }
 
     // Init
-    fadeInFromBlack();
-    changeLocation("home");
+    function initGame() {
+      fadeInFromBlack("Chapter 1: The Mosslands");
+      changeLocation("home");
+    }
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", initGame);
+    } else {
+      initGame();
+    }
   </script>
 </body>
 </html>
