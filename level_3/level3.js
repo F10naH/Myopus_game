@@ -591,5 +591,33 @@ document.getElementById("skipPuzzleTestBtn")?.addEventListener("click", () => {
   if (typeof activePuzzleFinish === "function") activePuzzleFinish();
 });
 
-// Initial Call
-setScene("orchard_entry");
+function fadeInFromBlack(chapterText = "Tap to enter") {
+  const overlay = document.createElement("div");
+  overlay.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: black; z-index: 9999; display: flex; justify-content: center; align-items: center; padding: 2rem; color: rgba(255, 235, 220, 0.7); font-family: 'Museo Slab 500', Georgia, serif; font-size: clamp(0.95rem, 4vw, 1.2rem); letter-spacing: 0.12em; line-height: 1.55; text-align: center; text-transform: uppercase; cursor: pointer; opacity: 1; transition: opacity 1.5s ease-in-out;";
+
+  const textSpan = document.createElement("span");
+  textSpan.textContent = chapterText;
+  textSpan.style.animation = "tapFade 2.4s ease-in-out infinite";
+  overlay.appendChild(textSpan);
+  document.body.appendChild(overlay);
+
+  overlay.addEventListener("click", () => {
+    overlay.style.opacity = "0";
+    overlay.style.pointerEvents = "none";
+
+    setTimeout(() => {
+      overlay.remove();
+    }, 1500);
+  });
+}
+
+function initGame() {
+  fadeInFromBlack("Chapter 3: The Abandoned Orchard");
+  setScene("orchard_entry");
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initGame);
+} else {
+  initGame();
+}
