@@ -24,15 +24,7 @@
       width: 100vw;
       height: 165vh;
       transform: translateY(-65vh); /* start showing the bottom (forest) */
-    }
-
-    body.title-active .world {
       animation: cameraPanUp 3s cubic-bezier(0.55, 0.05, 0.25, 1) forwards;
-    }
-
-    body.intro-active .world {
-      visibility: hidden;
-      pointer-events: none;
     }
 
     @keyframes cameraPanUp {
@@ -112,9 +104,6 @@
       cursor: pointer;
       z-index: 2;
       pointer-events: none; /* unlocked after camera settles */
-    }
-
-    body.title-active #titleScreen {
       animation: enableInteraction 0.01s 5.2s forwards;
     }
 
@@ -130,9 +119,6 @@
       background: rgba(255, 240, 230, 0.04);
       overflow: hidden;
       opacity: 0;
-    }
-
-    body.title-active .title-frame {
       animation: frameFadeIn 1.2s ease-out 0.85s forwards;
     }
 
@@ -163,9 +149,6 @@
       opacity: 0;
       filter: blur(7px);
       transform: translate(var(--x), var(--y)) rotate(var(--r)) scale(0.85);
-    }
-
-    body.title-active .game-title span {
       animation: assembleTitle 4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
       /* Start title motion soon after pan begins so it feels connected, not “dead air” */
       animation-delay: calc(var(--delay) + 1s);
@@ -194,9 +177,6 @@
       letter-spacing: 0.45em;
       text-transform: uppercase;
       opacity: 0;
-    }
-
-    body.title-active .chapter {
       animation: fadeUp 1.6s ease 3.6s forwards;
     }
 
@@ -208,9 +188,6 @@
       letter-spacing: 0.18em;
       text-transform: uppercase;
       opacity: 0;
-    }
-
-    body.title-active .tap-text {
       animation: tapFade 2.4s ease-in-out 4.6s infinite;
     }
 
@@ -236,89 +213,10 @@
     #titleScreen:hover .tap-text {
       color: rgba(255, 200, 215, 0.95);
     }
-
-    #cutsceneIntro {
-      position: fixed;
-      inset: 0;
-      z-index: 10;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      background: #000000;
-      overflow: hidden;
-      cursor: default;
-    }
-
-    .cutscene-image {
-      width: 100vw;
-      height: 100vh;
-      object-fit: contain;
-      opacity: 0;
-      filter: blur(18px);
-      transform: scale(1.025);
-      transition:
-        opacity 1.95s ease,
-        filter 1.95s ease,
-        transform 1.95s ease;
-    }
-
-    .cutscene-image.is-visible {
-      opacity: 1;
-      filter: blur(0);
-      transform: scale(1);
-    }
-
-    .cutscene-next {
-      position: fixed;
-      right: clamp(1.25rem, 4vw, 3rem);
-      bottom: clamp(1.25rem, 4vw, 3rem);
-      width: clamp(3rem, 7vw, 4.75rem);
-      height: clamp(3rem, 7vw, 4.75rem);
-      display: grid;
-      place-items: center;
-      border: 0;
-      border-radius: 999px;
-      background: rgba(255, 255, 255, 0.72);
-      cursor: default;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.25s ease;
-      z-index: 3;
-    }
-
-    #cutsceneIntro.is-ready .cutscene-next {
-      opacity: 1;
-      pointer-events: auto;
-    }
-
-    .cutscene-next::before {
-      content: "";
-      width: 0;
-      height: 0;
-      margin-left: 0.28rem;
-      border-top: 0.9rem solid transparent;
-      border-bottom: 0.9rem solid transparent;
-      border-left: 1.45rem solid #000000;
-    }
-
-    .cutscene-next:focus-visible {
-      outline: 2px solid rgba(0, 0, 0, 0.32);
-      outline-offset: 3px;
-    }
   </style>
 </head>
 
-<body class="intro-active">
-  <section id="cutsceneIntro" aria-label="Opening cutscene">
-    <img
-      id="cutsceneImage"
-      class="cutscene-image"
-      src="cutscenes/cutscene-01.jpg"
-      alt=""
-    />
-    <button id="cutsceneNext" class="cutscene-next" type="button" aria-label="Next cutscene image"></button>
-  </section>
-
+<body>
   <div class="world">
     <div class="sky"></div>
     <div class="haze"></div>
@@ -353,75 +251,6 @@
   </div>
 
   <script>
-    const cutsceneImages = [
-      "cutscenes/cutscene-01.jpg",
-      "cutscenes/cutscene-02.jpg",
-      "cutscenes/cutscene-03.jpg",
-      "cutscenes/cutscene-04.jpg",
-      "cutscenes/cutscene-05.jpg",
-      "cutscenes/cutscene-06.jpg",
-    ];
-
-    const cutsceneIntro = document.getElementById("cutsceneIntro");
-    const cutsceneImage = document.getElementById("cutsceneImage");
-    const cutsceneNext = document.getElementById("cutsceneNext");
-    let cutsceneIndex = 0;
-    let cutsceneReady = false;
-
-    function finishFocusTransition() {
-      window.setTimeout(() => {
-        cutsceneIntro.classList.add("is-ready");
-      }, 2000);
-    }
-
-    function revealCurrentCutscene() {
-      cutsceneReady = true;
-
-      if (cutsceneImage.complete) {
-        window.requestAnimationFrame(() => {
-          window.requestAnimationFrame(() => {
-            cutsceneImage.classList.add("is-visible");
-            finishFocusTransition();
-          });
-        });
-      }
-    }
-
-    function showTitleScene() {
-      cutsceneNext.remove();
-      document.body.classList.remove("intro-active");
-      document.body.classList.add("title-active");
-      cutsceneIntro.remove();
-    }
-
-    function showNextCutsceneImage() {
-      if (cutsceneIndex >= cutsceneImages.length - 1) {
-        showTitleScene();
-        return;
-      }
-
-      cutsceneIndex += 1;
-      cutsceneImage.classList.remove("is-visible");
-
-      window.setTimeout(() => {
-        cutsceneImage.src = cutsceneImages[cutsceneIndex];
-      }, 220);
-    }
-
-    cutsceneImage.addEventListener("load", () => {
-      if (!cutsceneReady) {
-        return;
-      }
-
-      window.requestAnimationFrame(() => {
-        cutsceneImage.classList.add("is-visible");
-        finishFocusTransition();
-      });
-    });
-
-    cutsceneNext.addEventListener("click", showNextCutsceneImage);
-    revealCurrentCutscene();
-
     // ── Pine-tree silhouette generator ────────────────────────────────────────
     (function () {
       function mkRng(seed) {
