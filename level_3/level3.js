@@ -413,7 +413,7 @@ function renderScene() {
         [
           {
             text: "Move toward the Village",
-            action: () => (window.location.href = "../ending/ending.html"),
+            action: () => transitionToEnding(),
           },
         ],
       );
@@ -663,6 +663,24 @@ document.getElementById("skipPuzzleTestBtn")?.addEventListener("click", () => {
   if (typeof activePuzzleFinish === "function") activePuzzleFinish();
 });
 
+function transitionToEnding() {
+  const bgMusic = document.getElementById("bg-music");
+  if (bgMusic) {
+    const fadeAudio = setInterval(() => {
+      if (bgMusic.volume > 0.1) {
+        bgMusic.volume -= 0.1;
+      } else {
+        clearInterval(fadeAudio);
+        bgMusic.pause();
+      }
+    }, 150);
+  }
+
+  setTimeout(() => {
+    window.location.href = "../ending/ending.html";
+  }, 1500);
+}
+
 function fadeInFromBlack(chapterText = "Tap to enter") {
   const overlay = document.createElement("div");
   overlay.className = "chapter-overlay";
@@ -675,6 +693,12 @@ function fadeInFromBlack(chapterText = "Tap to enter") {
   document.body.appendChild(overlay);
 
   overlay.addEventListener("click", () => {
+    const bgMusic = document.getElementById("bg-music");
+    if (bgMusic) {
+      bgMusic.volume = 1;
+      bgMusic.play().catch((e) => console.error("Audio play failed:", e));
+    }
+
     overlay.style.opacity = "0";
     overlay.style.pointerEvents = "none";
 

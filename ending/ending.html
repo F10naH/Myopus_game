@@ -192,6 +192,10 @@
     #storyPanel button:hover {
       background: rgba(232, 235, 228, 0.05);
     }
+    @keyframes tapFade {
+      0%, 100% { opacity: 0.45; }
+      50% { opacity: 1; }
+    }
   </style>
 </head>
 <body>
@@ -210,6 +214,8 @@
       <button type="button" id="continueButton">Continue</button>
     </div>
   </div>
+
+  <audio id="bg-music" src="../music/the golden moss.mp3" loop></audio>
 
   <script>
     const dialogue = [
@@ -364,6 +370,7 @@
     const backdropOverlaysDark = document.getElementById("backdropOverlaysDark");
 
     document.addEventListener("click", (e) => {
+      if (e.target.closest?.(".chapter-overlay")) return;
       if (e.target.tagName === "BUTTON") return;
       skipTyping = true;
     });
@@ -474,7 +481,35 @@
       renderDialogue();
     });
 
-    renderDialogue();
+    function fadeInFromBlack(chapterText = "Tap to enter", onExit = () => {}) {
+      const overlay = document.createElement("div");
+      overlay.className = "chapter-overlay";
+      overlay.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: black; z-index: 9999; display: flex; justify-content: center; align-items: center; padding: 2rem; color: rgba(255, 235, 220, 0.7); font-family: 'Museo Slab 500', Georgia, serif; font-size: clamp(0.95rem, 4vw, 1.2rem); letter-spacing: 0.12em; line-height: 1.55; text-align: center; text-transform: uppercase; cursor: pointer; opacity: 1; transition: opacity 1.5s ease-in-out;";
+
+      const textSpan = document.createElement("span");
+      textSpan.textContent = chapterText;
+      textSpan.style.animation = "tapFade 2.4s ease-in-out infinite";
+      overlay.appendChild(textSpan);
+      document.body.appendChild(overlay);
+
+      overlay.addEventListener("click", () => {
+        const bgMusic = document.getElementById("bg-music");
+        if (bgMusic) {
+          bgMusic.volume = 1;
+          bgMusic.play().catch((e) => console.error("Audio play failed:", e));
+        }
+
+        overlay.style.opacity = "0";
+        overlay.style.pointerEvents = "none";
+
+        setTimeout(() => {
+          overlay.remove();
+          onExit();
+        }, 1500);
+      });
+    }
+
+    fadeInFromBlack("Chapter 4: The Golden Moss", renderDialogue);
   </script>
 </body>
 </html>
