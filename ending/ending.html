@@ -107,11 +107,11 @@
       z-index: 1;
       max-width: 42rem;
       margin: 0 auto;
-      padding: 2rem 1.25rem 3rem;
+      padding: clamp(10rem, 34vh, 16rem) 1.25rem 3rem;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
-      justify-content: center;
+      justify-content: flex-start;
     }
     #speaker {
       font-size: 0.95rem;
@@ -158,22 +158,39 @@
         0 0 1.25rem rgba(0, 0, 0, 0.9),
         0 2px 14px rgba(0, 0, 0, 0.75);
     }
+    .button-container {
+      display: flex;
+      justify-content: center;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+      margin-top: 3.5rem;
+      min-height: 2.4rem;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.25s ease;
+    }
+    .button-container.is-visible {
+      opacity: 1;
+      visibility: visible;
+    }
     #storyPanel button {
-      display: block;
-      width: 100%;
-      max-width: 20rem;
-      margin: 0.6rem 0;
-      padding: 0.75rem 1rem;
-      font-size: 1rem;
-      border: 1px solid #5a7a66;
-      border-radius: 8px;
-      background: #2a3d32;
-      color: #f0f4ef;
+      flex: 0 1 auto;
+      width: auto;
+      padding: 0.5rem 1rem;
+      font-size: 0.95rem;
+      border: none;
+      border-top: 1px solid rgba(232, 235, 228, 0.3);
+      border-bottom: 1px solid rgba(232, 235, 228, 0.3);
+      background: transparent;
+      color: #e8ebe4;
       cursor: pointer;
       font-family: inherit;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      transition: background 0.2s;
     }
     #storyPanel button:hover {
-      background: #3a5244;
+      background: rgba(232, 235, 228, 0.05);
     }
   </style>
 </head>
@@ -189,7 +206,9 @@
   <div id="storyPanel">
     <div id="speaker"></div>
     <div id="text" class="story-text"></div>
-    <button type="button" id="continueButton">Continue</button>
+    <div class="button-container">
+      <button type="button" id="continueButton">Continue</button>
+    </div>
   </div>
 
   <script>
@@ -332,14 +351,22 @@
     ];
 
     let currentLine = 0;
+    let currentTypingToken = {};
+    let skipTyping = false;
 
     const speakerEl = document.getElementById("speaker");
     const textEl = document.getElementById("text");
     const button = document.getElementById("continueButton");
+    const buttonContainer = document.querySelector(".button-container");
     const backdropPhoto = document.getElementById("backdropPhoto");
     const backdropMoodDark = document.getElementById("backdropMoodDark");
     const backdropOverlaysGold = document.getElementById("backdropOverlaysGold");
     const backdropOverlaysDark = document.getElementById("backdropOverlaysDark");
+
+    document.addEventListener("click", (e) => {
+      if (e.target.tagName === "BUTTON") return;
+      skipTyping = true;
+    });
 
     function highlightGoldenMoss(html) {
       if (!html) return "";
@@ -378,14 +405,60 @@
       backdropPhoto.classList.toggle("is-visible", showPhoto);
     }
 
+    async function typeHTML(element, htmlString, token) {
+      const temp = document.createElement("div");
+      temp.innerHTML = htmlString;
+
+      async function walk(node, parent) {
+        if (token !== currentTypingToken) return;
+
+        if (node.nodeType === Node.TEXT_NODE) {
+          const textNode = document.createTextNode("");
+          parent.appendChild(textNode);
+
+          for (const char of node.textContent) {
+            if (token !== currentTypingToken) return;
+            textNode.textContent += char;
+            if (!skipTyping) {
+              await new Promise((resolve) => setTimeout(resolve, 15));
+            }
+          }
+          return;
+        }
+
+        if (node.nodeType === Node.ELEMENT_NODE) {
+          const clone = node.cloneNode(false);
+          parent.appendChild(clone);
+
+          for (const child of node.childNodes) {
+            await walk(child, clone);
+          }
+        }
+      }
+
+      for (const child of temp.childNodes) {
+        await walk(child, element);
+      }
+    }
+
     function renderDialogue() {
       const entry = dialogue[currentLine];
       speakerEl.textContent =
         entry.speaker && entry.speaker !== "Narration" ? entry.speaker : "";
+      textEl.innerHTML = "";
+      buttonContainer.classList.remove("is-visible");
       if (entry.isSection) {
         textEl.innerHTML = `<span class="section-label">${entry.text}</span>`;
+        buttonContainer.classList.add("is-visible");
       } else {
-        textEl.innerHTML = highlightGoldenMoss(entry.text);
+        currentTypingToken = {};
+        skipTyping = false;
+        const token = currentTypingToken;
+        typeHTML(textEl, highlightGoldenMoss(entry.text), token).then(() => {
+          if (token === currentTypingToken) {
+            buttonContainer.classList.add("is-visible");
+          }
+        });
       }
       button.textContent =
         currentLine >= dialogue.length - 1 ? "Credits" : "Continue";
@@ -394,7 +467,7 @@
 
     button.addEventListener("click", () => {
       if (currentLine >= dialogue.length - 1) {
-        window.location.href = "../title_scene/end_credits.html";
+        window.location.href = "end_credits.html";
         return;
       }
       currentLine++;

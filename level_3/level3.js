@@ -47,6 +47,15 @@ let levelState = {
 let activePuzzleFinish = null;
 let activePuzzleMessageListener = null;
 let activeAppleSpaceListener = null;
+let currentTypingToken = {};
+let skipTyping = false;
+const seenStoryTextKeys = new Set();
+
+document.addEventListener("click", (e) => {
+  if (e.target.closest?.(".chapter-overlay")) return;
+  if (e.target.tagName === "BUTTON") return;
+  skipTyping = true;
+});
 
 function setSkipPuzzleButtonVisible(visible) {
   const btn = document.getElementById("skipPuzzleTestBtn");
@@ -567,23 +576,86 @@ function normalizeStoryText(raw) {
     .replace(/\n+$/, "");
 }
 
+async function typeHTML(element, htmlString, token) {
+  const temp = document.createElement("div");
+  temp.innerHTML = normalizeStoryText(htmlString);
+
+  async function walk(node, parent) {
+    if (token !== currentTypingToken) return;
+
+    if (node.nodeType === Node.TEXT_NODE) {
+      const textNode = document.createTextNode("");
+      parent.appendChild(textNode);
+
+      for (const char of node.textContent) {
+        if (token !== currentTypingToken) return;
+        textNode.textContent += char;
+        if (!skipTyping) {
+          await new Promise((resolve) => setTimeout(resolve, 15));
+        }
+      }
+      return;
+    }
+
+    if (node.nodeType === Node.ELEMENT_NODE) {
+      const clone = node.cloneNode(false);
+      parent.appendChild(clone);
+
+      for (const child of node.childNodes) {
+        await walk(child, clone);
+      }
+    }
+  }
+
+  for (const child of temp.childNodes) {
+    await walk(child, element);
+  }
+}
+
 function showText(text, options = []) {
   const container = document.getElementById("adventureBox");
   if (!container) return;
 
   const body =
     typeof text === "string" ? normalizeStoryText(text) : String(text);
+  const textKey = `${levelState.currentScene}\n${body}`;
+  const hasShownThisText = seenStoryTextKeys.has(textKey);
+  seenStoryTextKeys.add(textKey);
 
-  let html = `<div class="story-text">${body}</div>`;
+  const storyText = document.createElement("div");
+  storyText.className = "story-text";
+
+  const buttonContainer = document.createElement("div");
+  buttonContainer.className = "button-container";
+  buttonContainer.style.display = "none";
+
   options.forEach((opt, i) => {
-    html += `<button type="button" data-opt-index="${i}">${opt.text}</button>`;
+    const button = document.createElement("button");
+    button.type = "button";
+    button.dataset.optIndex = String(i);
+    button.textContent = opt.text;
+    button.addEventListener("click", () => options[i].action());
+    buttonContainer.appendChild(button);
   });
 
-  container.innerHTML = html;
+  container.innerHTML = "";
+  container.appendChild(storyText);
+  container.appendChild(buttonContainer);
 
-  container.querySelectorAll("button[data-opt-index]").forEach((btn) => {
-    const idx = parseInt(btn.getAttribute("data-opt-index"), 10);
-    btn.addEventListener("click", () => options[idx].action());
+  currentTypingToken = {};
+  skipTyping = false;
+  const token = currentTypingToken;
+
+  if (hasShownThisText) {
+    storyText.innerHTML = body;
+    buttonContainer.style.display = "flex";
+    return;
+  }
+
+  typeHTML(storyText, body, token).then(() => {
+    if (token === currentTypingToken) {
+      buttonContainer.style.display = "flex";
+    }
   });
 }
 
@@ -593,6 +665,7 @@ document.getElementById("skipPuzzleTestBtn")?.addEventListener("click", () => {
 
 function fadeInFromBlack(chapterText = "Tap to enter") {
   const overlay = document.createElement("div");
+  overlay.className = "chapter-overlay";
   overlay.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: black; z-index: 9999; display: flex; justify-content: center; align-items: center; padding: 2rem; color: rgba(255, 235, 220, 0.7); font-family: 'Museo Slab 500', Georgia, serif; font-size: clamp(0.95rem, 4vw, 1.2rem); letter-spacing: 0.12em; line-height: 1.55; text-align: center; text-transform: uppercase; cursor: pointer; opacity: 1; transition: opacity 1.5s ease-in-out;";
 
   const textSpan = document.createElement("span");
