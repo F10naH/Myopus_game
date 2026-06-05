@@ -7,9 +7,9 @@
   <style>
     * { box-sizing: border-box; }
     :root {
-      --scene-bg-image: url("parking_lot.jpg");
+      --scene-bg-image: url("ending-storybook-parking-lot.png");
       --scene-img-position: center center;
-      --scene-img-size: 90%;
+      --scene-img-size: cover;
       --scene-edge-vignette: radial-gradient(
         ellipse 78% 70% at 50% 46%,
         rgba(0, 0, 0, 0) 38%,
@@ -486,13 +486,25 @@
       overlay.className = "chapter-overlay";
       overlay.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: black; z-index: 9999; display: flex; justify-content: center; align-items: center; padding: 2rem; color: rgba(255, 235, 220, 0.7); font-family: 'Museo Slab 500', Georgia, serif; font-size: clamp(0.95rem, 4vw, 1.2rem); letter-spacing: 0.12em; line-height: 1.55; text-align: center; text-transform: uppercase; cursor: pointer; opacity: 1; transition: opacity 1.5s ease-in-out;";
 
+      const content = document.createElement("div");
+      content.style.cssText = "display: flex; flex-direction: column; align-items: center; gap: 2.4rem; text-align: center;";
+
       const textSpan = document.createElement("span");
       textSpan.textContent = chapterText;
-      textSpan.style.animation = "tapFade 2.4s ease-in-out infinite";
-      overlay.appendChild(textSpan);
+
+      const promptSpan = document.createElement("span");
+      promptSpan.textContent = "Press any key to continue";
+      promptSpan.style.cssText = "font-size: 0.78rem; letter-spacing: 0.18em; color: rgba(255, 235, 220, 0.62); animation: tapFade 2.4s ease-in-out infinite;";
+
+      content.appendChild(textSpan);
+      content.appendChild(promptSpan);
+      overlay.appendChild(content);
       document.body.appendChild(overlay);
 
-      overlay.addEventListener("click", () => {
+      function continueChapter() {
+        if (overlay.dataset.transitioning === "true") return;
+        overlay.dataset.transitioning = "true";
+
         const bgMusic = document.getElementById("bg-music");
         if (bgMusic) {
           bgMusic.volume = 1;
@@ -503,10 +515,14 @@
         overlay.style.pointerEvents = "none";
 
         setTimeout(() => {
+          window.removeEventListener("keydown", continueChapter);
           overlay.remove();
           onExit();
         }, 1500);
-      });
+      }
+
+      overlay.addEventListener("click", continueChapter, { once: true });
+      window.addEventListener("keydown", continueChapter, { once: true });
     }
 
     fadeInFromBlack("Chapter 4: The Golden Moss", renderDialogue);

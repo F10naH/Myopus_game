@@ -201,11 +201,25 @@
       flex-wrap: wrap;
     }
     #storyPanel button {
+      position: relative;
       flex: 0 1 auto; width: auto; padding: 0.5rem 1rem;
       font-size: 0.95rem; border: none;
       border-top: 1px solid rgba(44, 30, 22, 0.3); border-bottom: 1px solid rgba(44, 30, 22, 0.3);
       background: transparent; color: #2c1e16; cursor: pointer;
       font-family: inherit; text-transform: uppercase; letter-spacing: 1px; transition: background 0.2s;
+    }
+    #storyPanel button.has-update::before {
+      content: "";
+      position: absolute;
+      top: -5px;
+      right: 0.35rem;
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #8fa46f;
+      box-shadow:
+        0 0 0 2px rgba(230, 223, 211, 0.95),
+        0 0 0 3px rgba(95, 124, 74, 0.32);
     }
     #storyPanel button:hover { background: rgba(44, 30, 22, 0.05); }
 
@@ -234,6 +248,6 @@
     <div id="adventureBox"></div>
   </div>
 
-  <script src="level1.js"></script>
+  <script src="level1.js?v=chapter-key-prompt"></script>
 </body>
 </html>

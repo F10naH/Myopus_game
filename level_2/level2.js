@@ -6,16 +6,16 @@ Text Adventure Core Script
 */
 
 const BACKDROP_IMAGES = {
-  owl: "images/tyto-owl.jpg",
-  marsh: "images/marsh.jpg"
+  forest: "images/chapter2-storybook-bg.png",
+  owlEyes: "images/chapter2-owl-eyes-bg.png",
+  marsh: "images/chapter2-storybook-bg.png"
 };
 
-const OWL_BACKDROP_POSITION = "center 28%";
-const OWL_BACKDROP_ZOOM = "50%";
-const MARSH_BACKDROP_ZOOM = "128%";
+const FOREST_BACKDROP_ZOOM = "cover";
+const MARSH_BACKDROP_ZOOM = "cover";
 
-const OWL_PHOTO_OPACITY = 0.88;
-const MARSH_PHOTO_OPACITY = 0.88;
+const FOREST_PHOTO_OPACITY = 0.9;
+const MARSH_PHOTO_OPACITY = 0.9;
 const BACKDROP_PHOTO_FADE_SEC = 2;
 
 if (typeof document !== "undefined") {
@@ -81,28 +81,30 @@ function appendText(newText) {
 
 function applySceneBackdrop(sceneId) {
   const root = document.documentElement;
-  // UPDATE: Added the new numbered scene names here so the owl background stays visible!
-  const owlScenes = ["tyto_meeting_1", "tyto_meeting_2", "tyto_challenge_1", "tyto_reward"];
+  const owlEyeScenes = ["tyto_meeting_1", "tyto_meeting_2", "tyto_challenge_1"];
   const marshScenes = ["marsh_entry", "ending"];
 
   const gradients = {
-    forest: `linear-gradient(165deg, rgba(14, 20, 16, 0.92) 0%, rgba(22, 32, 26, 0.88) 45%, rgba(10, 14, 12, 0.95) 100%)`,
+    forest: `linear-gradient(165deg, rgba(8, 14, 16, 0.42) 0%, rgba(12, 22, 24, 0.3) 45%, rgba(4, 8, 10, 0.72) 100%)`,
     owl: `linear-gradient(155deg, rgba(8, 10, 16, 0.78) 0%, rgba(14, 16, 22, 0.55) 38%, rgba(6, 8, 12, 0.88) 100%)`,
-    marsh: `linear-gradient(180deg, rgba(6, 14, 22, 0.85) 0%, rgba(10, 22, 30, 0.72) 42%, rgba(4, 10, 16, 0.92) 100%)`
+    marsh: `linear-gradient(180deg, rgba(6, 14, 22, 0.42) 0%, rgba(10, 22, 30, 0.3) 42%, rgba(4, 10, 16, 0.72) 100%)`
   };
 
-  let image = "none";
+  let image = `url("${BACKDROP_IMAGES.forest}")`;
   let gradient = gradients.forest;
   let imgPosition = "center center";
-  let imgSize = "cover";
-  let photoOpacity = 0;
+  let imgSize = FOREST_BACKDROP_ZOOM;
+  let photoOpacity = FOREST_PHOTO_OPACITY;
+  let silhouetteImage = "none";
+  let silhouettePosition = "center 42%";
+  let silhouetteSize = "clamp(120px, 18vw, 210px)";
+  let silhouetteOpacity = 0;
 
-  if (owlScenes.includes(sceneId)) {
-    image = `url("${BACKDROP_IMAGES.owl}")`;
+  if (owlEyeScenes.includes(sceneId)) {
+    image = `url("${BACKDROP_IMAGES.owlEyes}")`;
     gradient = gradients.owl;
-    imgPosition = OWL_BACKDROP_POSITION;
-    imgSize = OWL_BACKDROP_ZOOM;
-    photoOpacity = OWL_PHOTO_OPACITY;
+    imgSize = FOREST_BACKDROP_ZOOM;
+    photoOpacity = FOREST_PHOTO_OPACITY;
   } else if (marshScenes.includes(sceneId)) {
     image = `url("${BACKDROP_IMAGES.marsh}")`;
     gradient = gradients.marsh;
@@ -114,6 +116,10 @@ function applySceneBackdrop(sceneId) {
   root.style.setProperty("--scene-bg-gradient", gradient);
   root.style.setProperty("--scene-img-position", imgPosition);
   root.style.setProperty("--scene-img-size", imgSize);
+  root.style.setProperty("--scene-silhouette-image", silhouetteImage);
+  root.style.setProperty("--scene-silhouette-position", silhouettePosition);
+  root.style.setProperty("--scene-silhouette-size", silhouetteSize);
+  root.style.setProperty("--scene-silhouette-opacity", String(silhouetteOpacity));
 
   const photoEl = document.querySelector(".scene-backdrop-photo");
   const sameImage = image === lastBackdropImageKey;
@@ -516,13 +522,25 @@ function fadeInFromBlack(chapterText = "Tap to enter") {
   const overlay = document.createElement("div");
   overlay.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: black; z-index: 9999; display: flex; justify-content: center; align-items: center; color: rgba(255, 235, 220, 0.7); font-family: 'Museo Slab 500', Georgia, serif; font-size: 1.2rem; letter-spacing: 0.2em; text-transform: uppercase; cursor: pointer; opacity: 1; transition: opacity 1.5s ease-in-out;";
   
+  const content = document.createElement("div");
+  content.style.cssText = "display: flex; flex-direction: column; align-items: center; gap: 2.4rem; text-align: center;";
+
   const textSpan = document.createElement("span");
   textSpan.textContent = chapterText;
-  textSpan.style.animation = "tapFade 2.4s ease-in-out infinite";
-  overlay.appendChild(textSpan);
+
+  const promptSpan = document.createElement("span");
+  promptSpan.textContent = "Press any key to continue";
+  promptSpan.style.cssText = "font-size: 0.78rem; letter-spacing: 0.18em; color: rgba(255, 235, 220, 0.62); animation: tapFade 2.4s ease-in-out infinite;";
+
+  content.appendChild(textSpan);
+  content.appendChild(promptSpan);
+  overlay.appendChild(content);
   document.body.appendChild(overlay);
 
-  overlay.addEventListener("click", () => {
+  function continueChapter() {
+    if (overlay.dataset.transitioning === "true") return;
+    overlay.dataset.transitioning = "true";
+
     const bgMusic = document.getElementById("bg-music");
     if (bgMusic) {
       bgMusic.volume = 1;
@@ -533,9 +551,13 @@ function fadeInFromBlack(chapterText = "Tap to enter") {
     overlay.style.pointerEvents = "none";
 
     setTimeout(() => {
+      window.removeEventListener("keydown", continueChapter);
       overlay.remove();
     }, 1500);
-  });
+  }
+
+  overlay.addEventListener("click", continueChapter, { once: true });
+  window.addEventListener("keydown", continueChapter, { once: true });
 }
 
 function initGame() {

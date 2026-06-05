@@ -7,21 +7,26 @@ Main Narrative & Logic Script
 
 /* Backdrops — same layering as level 2 (photo under mood + vignette). */
 const BACKDROP_IMAGES = {
-  orchard: "images/dead_orchard.jpeg",
-  hare: "images/hare_trapped.jpg",
+  orchard: "images/chapter3-storybook-bg.png",
+  hareScene: "images/chapter3-hare-scene.png",
+  hareSilhouette: "images/hare-silhouette.svg",
 };
 
-/** Only `orchard_entry` and `hare_approach` use photos; other scenes use gradient only. */
+/** Storybook photo under mood + vignette; specific creatures are silhouettes. */
 const ORCHARD_BACKDROP_POSITION = "center 50%";
-const HARE_BACKDROP_POSITION = "center 50%";
 
-const ORCHARD_BACKDROP_ZOOM = "80%";
-const HARE_BACKDROP_ZOOM = "70%";
+const ORCHARD_BACKDROP_ZOOM = "cover";
 
 const ORCHARD_PHOTO_OPACITY = 0.9;
-const HARE_PHOTO_OPACITY = 0.88;
 
 const BACKDROP_PHOTO_FADE_SEC = 2;
+const CHAPTER_TITLE_FADE_MS = 700;
+const CHAPTER3_CUTSCENE_SLIDES = [
+  "images/chapter3_cutscenes/chapter3-cutscene-01.jpg",
+  "images/chapter3_cutscenes/chapter3-cutscene-02.jpg",
+  "images/chapter3_cutscenes/chapter3-cutscene-03.jpg",
+  "images/chapter3_cutscenes/chapter3-cutscene-04.jpg",
+];
 
 if (typeof document !== "undefined") {
   document.documentElement.style.setProperty(
@@ -42,6 +47,7 @@ let levelState = {
   visitedHose: false,
   visitedApple: false,
   visitedHare: false,
+  hasSeenHareReveal: false,
 };
 
 let activePuzzleFinish = null;
@@ -50,9 +56,12 @@ let activeAppleSpaceListener = null;
 let currentTypingToken = {};
 let skipTyping = false;
 const seenStoryTextKeys = new Set();
+let hareRevealTimer = null;
+let currentChapterCutsceneSlide = 0;
 
 document.addEventListener("click", (e) => {
   if (e.target.closest?.(".chapter-overlay")) return;
+  if (e.target.closest?.("#chapterCutscene")) return;
   if (e.target.tagName === "BUTTON") return;
   skipTyping = true;
 });
@@ -88,7 +97,44 @@ function setScene(scene) {
   if (scene === "hose_inspect") levelState.visitedHose = true;
   if (scene === "apple_inspect") levelState.visitedApple = true;
   if (scene === "hare_approach") levelState.visitedHare = true;
+  if (scene === "hare_approach") {
+    startHareApproachScene();
+    return;
+  }
+  if (scene === "level_complete" || scene === "hare_game_start") {
+    applySceneBackdrop(scene);
+    clearTimeout(hareRevealTimer);
+    hareRevealTimer = null;
+    renderSceneRemainder();
+    return;
+  }
   renderScene();
+}
+
+function startHareApproachScene() {
+  const shouldRevealHareImage = !levelState.hasSeenHareReveal;
+  applySceneBackdrop("hare_approach", { skipPhotoFade: !shouldRevealHareImage });
+  clearTimeout(hareRevealTimer);
+  hareRevealTimer = null;
+
+  const storyPanel = document.getElementById("storyPanel");
+  const container = document.getElementById("adventureBox");
+  if (container) container.innerHTML = "";
+  if (storyPanel) {
+    storyPanel.style.display = "block";
+  }
+
+  renderHareApproach();
+  if (shouldRevealHareImage) {
+    levelState.hasSeenHareReveal = true;
+    storyPanel?.classList.add("story-panel--delayed");
+    hareRevealTimer = setTimeout(() => {
+      if (levelState.currentScene !== "hare_approach") return;
+      storyPanel?.classList.remove("story-panel--delayed");
+    }, 2000);
+  } else {
+    storyPanel?.classList.remove("story-panel--delayed");
+  }
 }
 
 function renderScene() {
@@ -96,6 +142,15 @@ function renderScene() {
 
   const container = document.getElementById("adventureBox");
   if (!container) return;
+  const storyPanel = document.getElementById("storyPanel");
+  clearTimeout(hareRevealTimer);
+  hareRevealTimer = null;
+  if (storyPanel) {
+    storyPanel.classList.remove("story-panel--delayed");
+    if (levelState.currentScene !== "hare_approach") {
+      storyPanel.style.display = "block";
+    }
+  }
 
   switch (levelState.currentScene) {
     case "orchard_entry":
@@ -107,14 +162,22 @@ function renderScene() {
         [
           {
             text: "Investigate the Hose",
+            hasObjective: levelState.visitedHose && !levelState.hoseConnected,
             action: () => setScene("hose_inspect"),
           },
           {
             text: "Examine the Bitter Fruit",
+            hasObjective:
+              levelState.visitedApple &&
+              levelState.hoseConnected &&
+              !levelState.appleScented,
             action: () => setScene("apple_inspect"),
           },
           {
             text: "Approach the Hare",
+            hasObjective:
+              !levelState.pathCleared &&
+              (!levelState.visitedHare || levelState.appleScented),
             action: () => setScene("hare_approach"),
           },
         ],
@@ -349,11 +412,25 @@ function renderScene() {
       break;
 
     case "hare_approach":
+      if (storyPanel) {
+        storyPanel.style.display = "block";
+        storyPanel.classList.add("story-panel--delayed");
+      }
+      renderHareApproach();
+      hareRevealTimer = setTimeout(() => {
+        if (levelState.currentScene !== "hare_approach") return;
+        storyPanel?.classList.remove("story-panel--delayed");
+      }, 2000);
+      break;
+  }
+}
+
+function renderHareApproach() {
       if (!levelState.appleScented) {
         // Branch A: Hare is frantic, terrified, and warning of snakes
         let hareText = `You step carefully onto the rotting burlap, but the moment your paws rustle the material, the Mountain Hare erupts into a blind, hysterical frenzy. It is thrashing wildly, kicking out with powerful, desperate back legs. The heavy plastic mesh of the bird netting stretches and snaps back; you are simply too small to handle the violent recoil of its panic. You are forced to stay back.
 \nThe creature’s eyes are wide, glassy, and rolled back in terror. It stares blankly at the plastic threads pinning it down, completely blind to the reality of the human garbage that holds it.
-\nHARE: "Stay back, small one! Back! The Spirit of the Orchard has finally come for me! It has woven a web of iron to punish my sins... and it has unleashed its demons! Beware the Yellow Snake sent down by the Spirit! I saw it writhing in the dirt, slithering through the rows to choke me... I was running from its venom when the web swallowed me whole! Go, before it wraps around you too!"`;
+\nHARE: "Stay back, small one! Back! The Spirit of the Orchard has finally come for me! It has woven a web of iron to punish my sins... and it has unleashed its demons! Beware the Yellow Snake sent down by the Spirit! I saw it writhing in the dirt, slithering through the rows to choke me... I was running from its venom, being chased by a filthy humanoid, when the web swallowed me whole! Go, before it wraps around you too!"`;
 
         // NEW: Dynamic Response for Row 7 (Seen Hose, but not Apple yet)
         if (levelState.visitedHose && !levelState.visitedApple) {
@@ -401,8 +478,10 @@ function renderScene() {
           ],
         );
       }
-      break;
+}
 
+function renderSceneRemainder() {
+  switch (levelState.currentScene) {
     case "level_complete":
       // Concluding dialogue block containing the full lore payoff
       showText(
@@ -467,7 +546,7 @@ function renderScene() {
   }
 }
 
-function applySceneBackdrop(sceneId) {
+function applySceneBackdrop(sceneId, options = {}) {
   const root = document.documentElement;
 
   const gradients = {
@@ -479,9 +558,9 @@ function applySceneBackdrop(sceneId) {
       )`,
     orchardPhoto: `linear-gradient(
         155deg,
-        rgba(22, 18, 12, 0.82) 0%,
-        rgba(36, 30, 20, 0.72) 42%,
-        rgba(14, 12, 8, 0.9) 100%
+        rgba(16, 14, 18, 0.42) 0%,
+        rgba(22, 24, 28, 0.3) 42%,
+        rgba(8, 8, 10, 0.72) 100%
       )`,
     harePhoto: `linear-gradient(
         160deg,
@@ -491,11 +570,15 @@ function applySceneBackdrop(sceneId) {
       )`,
   };
 
-  let image = "none";
-  let gradient = gradients.neutral;
+  let image = `url("${BACKDROP_IMAGES.orchard}")`;
+  let gradient = gradients.orchardPhoto;
   let imgPosition = "center center";
-  let imgSize = "cover";
-  let photoOpacity = 0;
+  let imgSize = ORCHARD_BACKDROP_ZOOM;
+  let photoOpacity = ORCHARD_PHOTO_OPACITY;
+  let silhouetteImage = "none";
+  let silhouettePosition = "center 65%";
+  let silhouetteSize = "min(58vw, 440px)";
+  let silhouetteOpacity = 0;
 
   if (sceneId === "orchard_entry") {
     image = `url("${BACKDROP_IMAGES.orchard}")`;
@@ -504,17 +587,21 @@ function applySceneBackdrop(sceneId) {
     imgSize = ORCHARD_BACKDROP_ZOOM;
     photoOpacity = ORCHARD_PHOTO_OPACITY;
   } else if (sceneId === "hare_approach") {
-    image = `url("${BACKDROP_IMAGES.hare}")`;
+    image = `url("${BACKDROP_IMAGES.hareScene}")`;
     gradient = gradients.harePhoto;
-    imgPosition = HARE_BACKDROP_POSITION;
-    imgSize = HARE_BACKDROP_ZOOM;
-    photoOpacity = HARE_PHOTO_OPACITY;
+    imgPosition = "center 54%";
+    imgSize = "cover";
+    photoOpacity = ORCHARD_PHOTO_OPACITY;
   }
 
   root.style.setProperty("--scene-bg-image", image);
   root.style.setProperty("--scene-bg-gradient", gradient);
   root.style.setProperty("--scene-img-position", imgPosition);
   root.style.setProperty("--scene-img-size", imgSize);
+  root.style.setProperty("--scene-silhouette-image", silhouetteImage);
+  root.style.setProperty("--scene-silhouette-position", silhouettePosition);
+  root.style.setProperty("--scene-silhouette-size", silhouetteSize);
+  root.style.setProperty("--scene-silhouette-opacity", String(silhouetteOpacity));
 
   const photoEl = document.querySelector(".scene-backdrop-photo");
   const imageKey = image;
@@ -535,7 +622,7 @@ function applySceneBackdrop(sceneId) {
     return;
   }
 
-  const needsFadeIn = !sameImage || !hadPhoto;
+  const needsFadeIn = !options.skipPhotoFade && (!sameImage || !hadPhoto);
 
   if (needsFadeIn && photoEl) {
     photoEl.classList.add("scene-backdrop-photo--no-transition");
@@ -634,6 +721,9 @@ function showText(text, options = []) {
     button.type = "button";
     button.dataset.optIndex = String(i);
     button.textContent = opt.text;
+    if (opt.hasObjective) {
+      button.classList.add("has-objective");
+    }
     button.addEventListener("click", () => options[i].action());
     buttonContainer.appendChild(button);
   });
@@ -686,31 +776,141 @@ function fadeInFromBlack(chapterText = "Tap to enter") {
   overlay.className = "chapter-overlay";
   overlay.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: black; z-index: 9999; display: flex; justify-content: center; align-items: center; padding: 2rem; color: rgba(255, 235, 220, 0.7); font-family: 'Museo Slab 500', Georgia, serif; font-size: clamp(0.95rem, 4vw, 1.2rem); letter-spacing: 0.12em; line-height: 1.55; text-align: center; text-transform: uppercase; cursor: pointer; opacity: 1; transition: opacity 1.5s ease-in-out;";
 
+  const content = document.createElement("div");
+  content.style.cssText = "display: flex; flex-direction: column; align-items: center; gap: 2.4rem; text-align: center; transition: opacity 0.7s ease-in-out;";
+
   const textSpan = document.createElement("span");
   textSpan.textContent = chapterText;
-  textSpan.style.animation = "tapFade 2.4s ease-in-out infinite";
-  overlay.appendChild(textSpan);
+
+  const promptSpan = document.createElement("span");
+  promptSpan.textContent = "Press any key to continue";
+  promptSpan.style.cssText = "font-size: 0.78rem; letter-spacing: 0.18em; color: rgba(255, 235, 220, 0.62); animation: tapFade 2.4s ease-in-out infinite;";
+
+  content.appendChild(textSpan);
+  content.appendChild(promptSpan);
+  overlay.appendChild(content);
   document.body.appendChild(overlay);
 
-  overlay.addEventListener("click", () => {
+  function continueChapter() {
+    if (overlay.dataset.transitioning === "true") return;
+    overlay.dataset.transitioning = "true";
+
     const bgMusic = document.getElementById("bg-music");
     if (bgMusic) {
       bgMusic.volume = 1;
       bgMusic.play().catch((e) => console.error("Audio play failed:", e));
     }
 
-    overlay.style.opacity = "0";
     overlay.style.pointerEvents = "none";
+    promptSpan.style.animation = "none";
+    content.style.opacity = "0";
 
     setTimeout(() => {
-      overlay.remove();
-    }, 1500);
+      window.removeEventListener("keydown", continueChapter);
+      startChapterCutscene(overlay);
+    }, CHAPTER_TITLE_FADE_MS);
+  }
+
+  overlay.addEventListener("click", continueChapter, { once: true });
+  window.addEventListener("keydown", continueChapter, { once: true });
+}
+
+function updateChapterCutsceneSlide() {
+  const cutsceneImage = document.getElementById("chapterCutsceneImage");
+  const prevArrow = document.getElementById("chapterCutscenePrev");
+  if (!cutsceneImage || !prevArrow) return;
+
+  cutsceneImage.src = CHAPTER3_CUTSCENE_SLIDES[currentChapterCutsceneSlide];
+  prevArrow.style.display = currentChapterCutsceneSlide === 0 ? "none" : "block";
+}
+
+function createCutsceneFadeOverlay() {
+  const overlay = document.createElement("div");
+  overlay.style.position = "fixed";
+  overlay.style.inset = "0";
+  overlay.style.width = "100vw";
+  overlay.style.height = "100vh";
+  overlay.style.backgroundColor = "black";
+  overlay.style.opacity = "0";
+  overlay.style.transition = "opacity 1.5s ease-in-out";
+  overlay.style.zIndex = "9999";
+  overlay.style.pointerEvents = "all";
+  return overlay;
+}
+
+function startChapterCutscene(fadeOverlay) {
+  const cutscene = document.getElementById("chapterCutscene");
+  const cutsceneImage = document.getElementById("chapterCutsceneImage");
+  if (!cutscene || !CHAPTER3_CUTSCENE_SLIDES.length) {
+    fadeOverlay?.remove();
+    setScene("orchard_entry");
+    return;
+  }
+
+  currentChapterCutsceneSlide = 0;
+  cutscene.dataset.ready = "false";
+  cutsceneImage?.classList.add("cutscene-image--fade-in");
+  cutscene.style.display = "flex";
+  updateChapterCutsceneSlide();
+
+  if (fadeOverlay) {
+    fadeOverlay.remove();
+    cutscene.dataset.ready = "true";
+  } else {
+    cutscene.dataset.ready = "true";
+  }
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      cutsceneImage?.classList.remove("cutscene-image--fade-in");
+    });
   });
 }
 
+function finishChapterCutscene() {
+  const cutscene = document.getElementById("chapterCutscene");
+  const overlay = createCutsceneFadeOverlay();
+  document.body.appendChild(overlay);
+  void overlay.offsetWidth;
+  overlay.style.opacity = "1";
+
+  setTimeout(() => {
+    if (cutscene) cutscene.style.display = "none";
+    setScene("orchard_entry");
+    overlay.style.opacity = "0";
+    setTimeout(() => {
+      overlay.remove();
+    }, 1500);
+  }, 1500);
+}
+
+document.getElementById("chapterCutscenePrev")?.addEventListener("click", () => {
+  const cutscene = document.getElementById("chapterCutscene");
+  if (cutscene?.dataset.ready !== "true") return;
+  if (currentChapterCutsceneSlide > 0) {
+    currentChapterCutsceneSlide--;
+    updateChapterCutsceneSlide();
+  }
+});
+
+document.getElementById("chapterCutsceneNext")?.addEventListener("click", () => {
+  const cutscene = document.getElementById("chapterCutscene");
+  if (cutscene?.dataset.ready !== "true") return;
+  if (currentChapterCutsceneSlide < CHAPTER3_CUTSCENE_SLIDES.length - 1) {
+    currentChapterCutsceneSlide++;
+    updateChapterCutsceneSlide();
+    return;
+  }
+
+  finishChapterCutscene();
+});
+
 function initGame() {
+  CHAPTER3_CUTSCENE_SLIDES.forEach((src) => {
+    const img = new Image();
+    img.src = src;
+  });
   fadeInFromBlack("Chapter 3: The Abandoned Orchard");
-  setScene("orchard_entry");
 }
 
 if (document.readyState === "loading") {

@@ -10,6 +10,10 @@
       --scene-bg-image: none;
       --scene-img-position: center center;
       --scene-img-size: cover;
+      --scene-silhouette-image: none;
+      --scene-silhouette-position: center 42%;
+      --scene-silhouette-size: clamp(120px, 18vw, 210px);
+      --scene-silhouette-opacity: 0;
       --scene-edge-vignette: radial-gradient(
         ellipse 78% 70% at 50% 46%,
         rgba(0, 0, 0, 0) 38%,
@@ -47,6 +51,7 @@
     .scene-backdrop-photo {
       position: absolute;
       inset: 0;
+      z-index: 0;
       background-image: var(--scene-bg-image);
       background-size: var(--scene-img-size);
       background-position: var(--scene-img-position);
@@ -57,9 +62,21 @@
     .scene-backdrop-photo.scene-backdrop-photo--no-transition {
       transition: none;
     }
+    .scene-subject-silhouette {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      background-image: var(--scene-silhouette-image);
+      background-size: var(--scene-silhouette-size);
+      background-position: var(--scene-silhouette-position);
+      background-repeat: no-repeat;
+      opacity: var(--scene-silhouette-opacity);
+      transition: opacity var(--scene-photo-fade-duration) ease-in-out;
+    }
     .scene-backdrop-overlays {
       position: absolute;
       inset: 0;
+      z-index: 1;
       background-image: var(--scene-bg-gradient), var(--scene-edge-vignette);
       background-size: cover, cover;
       background-position: center center, center center;
@@ -271,6 +288,7 @@
 
   <div id="sceneBackdrop" aria-hidden="true">
     <div class="scene-backdrop-photo"></div>
+    <div class="scene-subject-silhouette"></div>
     <div class="scene-backdrop-overlays"></div>
   </div>
 
@@ -281,6 +299,6 @@
   <iframe id="gameFrame" title="Puzzle"></iframe>
   <button type="button" id="skipPuzzleTestBtn" hidden>Skip puzzle (test)</button>
 
-  <script src="level2.js"></script>
+  <script src="level2.js?v=chapter-key-prompt"></script>
 </body>
 </html>

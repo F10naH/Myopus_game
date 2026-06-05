@@ -14,6 +14,7 @@ if (typeof document !== "undefined") {
 }
 
 const backdropLocationsShown = new Set();
+const visitedLocations = new Set();
 let levelState = {
   currentLocation: "home", currentScene: "home", visitedHome: false, metBeaver: false,
   hasWood: false, hasBowl: false, hasSticks: false, hasWater: false, hasVeggies: false,
@@ -32,6 +33,7 @@ document.addEventListener('click', (e) => {
 function changeLocation(loc) {
   screenTextBlocks = []; 
   levelState.currentLocation = loc;
+  visitedLocations.add(loc);
   setScene(loc);
 }
 
@@ -42,6 +44,35 @@ function setScene(scene) {
 
 function appendText(newText) {
   screenTextBlocks.push(newText);
+}
+
+function hasActionableObjective(loc) {
+  if (loc === levelState.currentLocation || levelState.stewGiven) return false;
+
+  if (loc === "brook") {
+    return (
+      (!levelState.metBeaver && !levelState.hasBowl && !levelState.hasStew) ||
+      (levelState.hasWood && !levelState.hasBowl) ||
+      (levelState.hasBowl && !levelState.hasWater && !levelState.bowlPlaced) ||
+      levelState.hasStew
+    );
+  }
+
+  if (loc === "firepit") {
+    return (
+      (!levelState.hasWood && !levelState.hasBowl && !levelState.hasStew) ||
+      (levelState.hasSticks && !levelState.fireLit) ||
+      (levelState.hasBowl && levelState.fireLit && !levelState.bowlPlaced) ||
+      (levelState.hasVeggies && levelState.fireLit && levelState.bowlPlaced && !levelState.hasStew) ||
+      (levelState.hasStew && levelState.bowlPlaced)
+    );
+  }
+
+  if (loc === "patch") {
+    return levelState.hasBowl && !levelState.hasVeggies && !levelState.hasStew;
+  }
+
+  return false;
 }
 
 window.handleInline = function(action) {
@@ -111,18 +142,18 @@ function renderScene() {
         appendText(`<em>The same as before. The taiga air is crisp.</em>`);
       }
       showText([
-        { text: "TO THE BROOK", action: () => {
+        { text: "TO THE BROOK", hasUpdate: hasActionableObjective("brook"), action: () => {
           if (levelState.metBeaver && !levelState.hasWood && !levelState.hasBowl && !levelState.hasStew && !levelState.stewGiven) { setScene("home_blocked"); } 
           else { changeLocation("brook"); }
         }},
-        { text: "TO THE PIT", action: () => changeLocation("firepit") }
+        { text: "TO THE PIT", hasUpdate: hasActionableObjective("firepit"), action: () => changeLocation("firepit") }
       ]);
       break;
 
     case "home_blocked":
       screenTextBlocks = [];
       appendText(`<em>It’s pointless to go back without so much as a bowl for the vegetable stew.</em>`);
-      showText([ { text: "TO THE BROOK", action: () => setScene("home_blocked") }, { text: "TO THE PIT", action: () => changeLocation("firepit") } ]);
+      showText([ { text: "TO THE BROOK", hasUpdate: hasActionableObjective("brook"), action: () => setScene("home_blocked") }, { text: "TO THE PIT", hasUpdate: hasActionableObjective("firepit"), action: () => changeLocation("firepit") } ]);
       break;
 
     case "brook":
@@ -294,12 +325,12 @@ function renderScene() {
       if (levelState.hasVeggies) fpText += "\n\n<em>You could use your <span class='interactable item-veggies' onclick='handleInline(\"use_veggies\")'>wild onions and carrots</span> here.</em>";
 
       appendText(fpText);
-      showText([ { text: "RETURN HOME", action: () => changeLocation("home") }, { text: "TO THE PATCH", action: () => changeLocation("patch") } ]);
+      showText([ { text: "RETURN HOME", action: () => changeLocation("home") }, { text: "TO THE PATCH", hasUpdate: hasActionableObjective("patch"), action: () => changeLocation("patch") } ]);
       break;
 
     case "firepit_pickup_wood":
       appendText(`<em>You pick up the chunk of wood. Maybe someone could help you turn it into something useful?</em>`);
-      showText([ { text: "RETURN HOME", action: () => changeLocation("home") }, { text: "TO THE PATCH", action: () => changeLocation("patch") } ]);
+      showText([ { text: "RETURN HOME", action: () => changeLocation("home") }, { text: "TO THE PATCH", hasUpdate: hasActionableObjective("patch"), action: () => changeLocation("patch") } ]);
       break;
     case "firepit_light_fire":
       levelState.fireLit = true; levelState.hasSticks = false;
@@ -329,7 +360,7 @@ function renderScene() {
       break;
     case "firepit_pickup_stew":
       appendText(`<em>You pick up the stew. Time to take it back to the Beaver.</em>`);
-      showText([ { text: "RETURN HOME", action: () => changeLocation("home") }, { text: "TO THE PATCH", action: () => changeLocation("patch") } ]);
+      showText([ { text: "RETURN HOME", action: () => changeLocation("home") }, { text: "TO THE PATCH", hasUpdate: hasActionableObjective("patch"), action: () => changeLocation("patch") } ]);
       break;
 
     case "patch":
@@ -368,6 +399,15 @@ function parseDialogue(text) {
     }
   }
   return { speaker, text: cleanText };
+}
+
+function isActionHintText(text) {
+  return [
+    "You could use your",
+    "You could place your",
+    "water looks clear enough to collect",
+    "vegetable stew is bubbling",
+  ].some((phrase) => text.includes(phrase));
 }
 
 async function typeHTML(element, htmlString, token) {
@@ -409,7 +449,8 @@ function showText(options = []) {
   
   for (let i = 0; i < parsedLines.length - 1; i++) {
      const row = document.createElement('div');
-     row.className = `dialogue-row ${parsedLines[i].speaker} read-text`;
+     const keepVisible = isActionHintText(parsedLines[i].text);
+     row.className = `dialogue-row ${parsedLines[i].speaker}${keepVisible ? "" : " read-text"}`;
      const bubble = document.createElement('div');
      bubble.className = `bubble ${parsedLines[i].speaker}`;
      bubble.innerHTML = highlightGoldenMoss(normalizeStoryText(parsedLines[i].text));
@@ -432,6 +473,7 @@ function showText(options = []) {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.textContent = opt.text;
+    if (opt.hasUpdate) btn.classList.add('has-update');
     btn.onclick = (e) => { e.stopPropagation(); opt.action(); };
     btnCont.appendChild(btn);
   });
@@ -487,13 +529,25 @@ function fadeInFromBlack(chapterText = "Tap to enter") {
   const overlay = document.createElement("div");
   overlay.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: black; z-index: 9999; display: flex; justify-content: center; align-items: center; color: rgba(255, 235, 220, 0.7); font-family: 'Museo Slab 500', Georgia, serif; font-size: 1.2rem; letter-spacing: 0.2em; text-transform: uppercase; cursor: pointer; opacity: 1; transition: opacity 1.5s ease-in-out;";
   
+  const content = document.createElement("div");
+  content.style.cssText = "display: flex; flex-direction: column; align-items: center; gap: 2.4rem; text-align: center;";
+
   const textSpan = document.createElement("span");
   textSpan.textContent = chapterText;
-  textSpan.style.animation = "tapFade 2.4s ease-in-out infinite";
-  overlay.appendChild(textSpan);
+
+  const promptSpan = document.createElement("span");
+  promptSpan.textContent = "Press any key to continue";
+  promptSpan.style.cssText = "font-size: 0.78rem; letter-spacing: 0.18em; color: rgba(255, 235, 220, 0.62); animation: tapFade 2.4s ease-in-out infinite;";
+
+  content.appendChild(textSpan);
+  content.appendChild(promptSpan);
+  overlay.appendChild(content);
   document.body.appendChild(overlay);
 
-  overlay.addEventListener("click", () => {
+  function continueChapter() {
+    if (overlay.dataset.transitioning === "true") return;
+    overlay.dataset.transitioning = "true";
+
     const bgMusic = document.getElementById("bg-music");
     if (bgMusic) {
       bgMusic.volume = 1;
@@ -504,9 +558,13 @@ function fadeInFromBlack(chapterText = "Tap to enter") {
     overlay.style.pointerEvents = "none";
 
     setTimeout(() => {
+      window.removeEventListener("keydown", continueChapter);
       overlay.remove();
     }, 1500);
-  });
+  }
+
+  overlay.addEventListener("click", continueChapter, { once: true });
+  window.addEventListener("keydown", continueChapter, { once: true });
 }
 
 function updateInventory() {

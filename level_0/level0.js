@@ -83,11 +83,11 @@
 
 // --- Slideshow Logic ---
 const slides = [
+  "images/alert.png",
   "images/flower.png",
   "images/justmarried.png",
-  "images/alert.png",
-  "images/mossplus.png",
   "images/tearful.png",
+  "images/mossplus.png",
   "images/lightbulb.png",
 ];
 
@@ -130,6 +130,7 @@ window.startSlideshow = function() {
     startWorld.style.display = "none";
     titleScreen.style.display = "none";
     
+    slideImg.classList.add("slide-img--fade-in");
     slideshowContainer.style.display = "flex";
     updateSlide();
     
@@ -139,6 +140,9 @@ window.startSlideshow = function() {
     overlay.style.opacity = "0";
     setTimeout(() => {
       overlay.remove();
+      requestAnimationFrame(() => {
+        slideImg.classList.remove("slide-img--fade-in");
+      });
     }, 1500);
   }, 1500);
 };
