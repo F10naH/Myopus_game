@@ -489,11 +489,13 @@ function showText(options = []) {
   if (currentLine.speaker === 'narrator') {
     currBubble.innerHTML = highlightGoldenMoss(normalizeStoryText(currentLine.text));
     btnCont.style.display = 'flex';
+    btnCont.style.scrollMarginBottom = "60px"; 
     btnCont.scrollIntoView({ behavior: "smooth", block: "end" });
   } else {
     typeHTML(currBubble, currentLine.text, token).then(() => {
        if (token === currentTypingToken) {
          btnCont.style.display = 'flex';
+         btnCont.style.scrollMarginBottom = "60px";
          btnCont.scrollIntoView({ behavior: "smooth", block: "end" });
        }
     });
