@@ -422,12 +422,18 @@ function showText(options = []) {
     btnCont.style.display = 'flex';
     if (myopusPortrait) myopusPortrait.classList.remove('speaking');
     if (tytoPortrait) tytoPortrait.classList.remove('speaking');
+    
+    btnCont.style.scrollMarginBottom = "60px"; 
+    btnCont.scrollIntoView({ behavior: "smooth", block: "end" });
   } else {
     typeHTML(currBubble, currentLine.text, token).then(() => {
        if (token === currentTypingToken) {
          btnCont.style.display = 'flex';
          if (myopusPortrait) myopusPortrait.classList.remove('speaking');
          if (tytoPortrait) tytoPortrait.classList.remove('speaking');
+         
+         btnCont.style.scrollMarginBottom = "60px";
+         btnCont.scrollIntoView({ behavior: "smooth", block: "end" });
        }
     });
   }
