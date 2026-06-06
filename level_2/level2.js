@@ -163,73 +163,115 @@ function renderScene() {
   switch (levelState.currentScene) {
     case "forest_entry":
       appendText(`The forest thins. The birch trunks give way to ancient, resinous pines whose roots curl above the earth like gnarled fingers. It is quiet here, and the smell here is sharp and old: pine sap, decay, and something herbal.`);
+      showText([{ text: "...", action: () => setScene("forest_entry_2") }]);
+      break;
+
+    case "forest_entry_2":
+      appendText(`The forest thins. The birch trunks give way to ancient, resinous pines whose roots curl above the earth like gnarled fingers. It is quiet here, and the smell here is sharp and old: pine sap, decay, and something herbal.`);
       appendText(`Somewhere above, something large shifts its weight. A pair of amber eyes blinks slowly from a branch twenty times your height.`);
-      showText([{ 
-        text: "Approach the eyes", 
-        action: () => { screenTextBlocks = []; setScene("tyto_meeting_1"); } 
-      }]);
+      showText([{ text: "Approach the eyes", action: () => setScene("tyto_meeting_1") }]);
       break;
 
     case "tyto_meeting_1":
       appendText(`Tyto: "You are far from your roots, small one. I can count the days left in your eyes. Not many. You carry urgency like a stone in your chest. It will exhaust you before the journey does."`);
-      showText([{ 
-        text: 'Myopus: "I need to reach the sacred land. My partner is ill. The golden moss–"', 
-        action: () => { screenTextBlocks = []; setScene("tyto_meeting_2"); } 
-      }]);
+      showText([{ text: 'Myopus: "I need to reach the sacred land. My partner is ill. The golden moss–"', action: () => setScene("tyto_meeting_2") }]);
       break;
 
     case "tyto_meeting_2":
-      // Re-append Myopus's line so it displays at the top of this dialogue step, followed by Tyto's response
       appendText(`Myopus: "I need to reach the sacred land. My partner is ill. The golden moss–"`);
       appendText(`Tyto: "Yes. The glowing one. I’ve seen it before it became a legend. But the marsh stands between you and it, and the marsh does not care for urgency."`);
-      showText([{ 
-        text: 'Myopus: "How do I cross the marsh?"', 
-        action: () => { screenTextBlocks = []; setScene("tyto_challenge_1"); } 
-      }]);
+      showText([{ text: 'Myopus: "How do I cross the marsh?"', action: () => setScene("tyto_challenge_1") }]);
       break;
 
     case "tyto_challenge_1":
-      // Re-append Myopus's line, then fire off three Tyto blocks so he gets three separate speech bubbles
+      appendText(`Myopus: "How do I cross the marsh?"`);
+      appendText(`Tyto: "I can tell you something more useful than a path. I can give you what you need to take with you. But first, I am old and I do not speak freely. I speak in exchange."`);
+      showText([{ text: "...", action: () => setScene("tyto_challenge_2") }]);
+      break;
+
+    case "tyto_challenge_2":
+      appendText(`Myopus: "How do I cross the marsh?"`);
+      appendText(`Tyto: "I can tell you something more useful than a path. I can give you what you need to take with you. But first, I am old and I do not speak freely. I speak in exchange."`);
+      appendText(`Tyto: "Organize my pellets. I have kept these in order for eleven seasons, but now my mind cannot comprehend such a task."`);
+      showText([{ text: "...", action: () => setScene("tyto_challenge_3") }]);
+      break;
+
+    case "tyto_challenge_3":
       appendText(`Myopus: "How do I cross the marsh?"`);
       appendText(`Tyto: "I can tell you something more useful than a path. I can give you what you need to take with you. But first, I am old and I do not speak freely. I speak in exchange."`);
       appendText(`Tyto: "Organize my pellets. I have kept these in order for eleven seasons, but now my mind cannot comprehend such a task."`);
       appendText(`Tyto: "I want them moved, intact, to the rightmost root. The pellets must be stacked from the largest at the bottom and the smallest on top on the new root. You may only carry one at a time. You may never place a larger one atop a smaller lest you break my precious pellets. Do this, and I will give you what you need."`);
-      showText([{ 
-        text: "Begin Tyto's puzzle", 
-        action: startTytoPuzzle // startTytoPuzzle handles clearing text naturally when the puzzle finishes
-      }]);
+      showText([{ text: "Begin Tyto's puzzle", action: startTytoPuzzle }]);
       break;
 
     case "tyto_reward":
       appendText(`Tyto: "You are small, but no less intelligent than a larger being like me. You may have my boat to cross the marsh. It will hold you long enough. Consider it a parting gift."`);
+      showText([{ text: "...", action: () => setScene("tyto_reward_2") }]);
+      break;
+
+    case "tyto_reward_2":
+      appendText(`Tyto: "You are small, but no less intelligent than a larger being like me. You may have my boat to cross the marsh. It will hold you long enough. Consider it a parting gift."`);
+      appendText(`You accept the boat without looking back.`);
+      showText([{ text: "...", action: () => setScene("tyto_reward_3") }]);
+      break;
+
+    case "tyto_reward_3":
+      appendText(`Tyto: "You are small, but no less intelligent than a larger being like me. You may have my boat to cross the marsh. It will hold you long enough. Consider it a parting gift."`);
       appendText(`You accept the boat without looking back.`);
       appendText(`The marsh waits.`);
-      showText([{ 
-        text: "Enter the marsh", 
-        action: () => { screenTextBlocks = []; setScene("marsh_entry"); } 
-      }]);
+      showText([{ text: "Enter the marsh", action: () => setScene("marsh_entry") }]);
       break;
 
     case "marsh_entry":
       appendText(`The trees end abruptly, as if they agreed not to go further.`);
+      showText([{ text: "...", action: () => setScene("marsh_entry_2") }]);
+      break;
+
+    case "marsh_entry_2":
+      appendText(`The trees end abruptly, as if they agreed not to go further.`);
+      appendText(`Before you: black water, still as glass.`);
+      showText([{ text: "...", action: () => setScene("marsh_entry_3") }]);
+      break;
+
+    case "marsh_entry_3":
+      appendText(`The trees end abruptly, as if they agreed not to go further.`);
+      appendText(`Before you: black water, still as glass.`);
+      appendText(`Something drifts beneath the surface.`);
+      showText([{ text: "...", action: () => setScene("marsh_entry_4") }]);
+      break;
+
+    case "marsh_entry_4":
+      appendText(`The trees end abruptly, as if they agreed not to go further.`);
       appendText(`Before you: black water, still as glass.`);
       appendText(`Something drifts beneath the surface.`);
       appendText(`Far across the water, perhaps forty body-lengths, the land resumes.`);
-      showText([{ 
-        text: "Use the wooden boat", 
-        action: startMarshPuzzle 
-      }]);
+      showText([{ text: "Use the wooden boat", action: startMarshPuzzle }]);
       break;
 
     case "ending":
       appendText(`You reach the far shore.`);
+      showText([{ text: "...", action: () => setScene("ending_2") }]);
+      break;
+
+    case "ending_2":
+      appendText(`You reach the far shore.`);
+      appendText(`The scent of pine smoke lingers behind you.`);
+      showText([{ text: "...", action: () => setScene("ending_3") }]);
+      break;
+
+    case "ending_3":
+      appendText(`You reach the far shore.`);
+      appendText(`The scent of pine smoke lingers behind you.`);
+      appendText(`Beyond the black water, the land rises into rows of stunted trees—an orchard laid out in rigid lines, as if humans had shaped the world and then walked away.`);
+      showText([{ text: "...", action: () => setScene("ending_4") }]);
+      break;
+
+    case "ending_4":
+      appendText(`You reach the far shore.`);
       appendText(`The scent of pine smoke lingers behind you.`);
       appendText(`Beyond the black water, the land rises into rows of stunted trees—an orchard laid out in rigid lines, as if humans had shaped the world and then walked away.`);
       appendText(`The journey continues...`);
-      showText([{ 
-        text: "Proceed to Chapter 3", 
-        action: transitionToLevel3 
-      }]);
+      showText([{ text: "Proceed to Chapter 3", action: transitionToLevel3 }]);
       break;
   }
 }
