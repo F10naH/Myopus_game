@@ -129,16 +129,17 @@
       let progress = 0;
       let droplets = [];
       let dropTimer = 0;
-      let nextDropTime = 40;
+      let nextDropTime = 0.66;
       let flashTimer = 0;
+      let flashTimerMax = 0;
       let flashColor = "";
+      let lastTime = 0;
 
       // Targets
       const targetY = 340;
       const targetRadius = 24;
 
       function spawnDroplet() {
-        // Idea 4: 75% chance to spawn a contaminated, hazardous brown droplet
         const isContaminated = Math.random() < 0.75;
 
         droplets.push({
@@ -147,84 +148,80 @@
           y: 50,
           type: isContaminated ? "contam" : "pure",
           speedOffset: Math.random() * 0.8,
-          waveSeed: Math.random() * 100, // Unique horizontal deviation offset
+          waveSeed: Math.random() * 100,
           passedTarget: false,
         });
 
-        // Scramble spawning frequencies slightly
-        nextDropTime = 15 + Math.random() * 15;
+        nextDropTime = 0.25 + Math.random() * 0.25;
         dropTimer = 0;
       }
 
-      function updateAndDraw() {
+      function updateAndDraw(currentTime) {
+        if (!lastTime) lastTime = currentTime;
+        const dt = (currentTime - lastTime) / 1000;
+        lastTime = currentTime;
+
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Handle damage/success backdrop screen flashes
         if (flashTimer > 0) {
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, flashTimer / flashTimerMax);
           ctx.fillStyle = flashColor;
           ctx.fillRect(0, 0, canvas.width, canvas.height);
-          flashTimer--;
+          ctx.restore();
+          
+          flashTimer -= dt;
         }
 
-        // Draw rusted nozzle head
         ctx.fillStyle = "#52433a";
         ctx.fillRect(180, 0, 40, 50);
         ctx.fillStyle = "#2b221c";
         ctx.fillRect(190, 45, 20, 10);
 
-        // Draw rotting apple base crater
         ctx.fillStyle = "#5c3a21";
         ctx.beginPath();
         ctx.arc(200, 360, 50, 0, Math.PI * 2);
         ctx.fill();
 
-        // Draw target activation sweet spot ring
         ctx.strokeStyle = "rgba(244, 232, 200, 0.5)";
         ctx.lineWidth = 3;
         ctx.beginPath();
         ctx.arc(200, targetY, targetRadius, 0, Math.PI * 2);
         ctx.stroke();
 
-        // Spawning clocks
-        dropTimer++;
+        dropTimer += dt;
         if (dropTimer >= nextDropTime) {
           spawnDroplet();
         }
 
-        // Idea 2: Speed scales progressively upwards alongside completion percentage
         let dynamicSpeedMultiplier = 1.0 + (progress / 100) * 1.2;
 
         for (let i = droplets.length - 1; i >= 0; i--) {
           let d = droplets[i];
 
-          // Physics engine processing
-          d.y += (4 + d.speedOffset) * dynamicSpeedMultiplier;
+          d.y += (4 + d.speedOffset) * dynamicSpeedMultiplier * 60 * dt;
 
-          // Idea 1: Drunken Droplet lateral drift physics (Sine wave calculation)
           d.x = d.baseX + Math.sin(d.y / 30 + d.waveSeed) * 25;
 
-          // Render configuration mapping
           if (d.type === "pure") {
-            ctx.fillStyle = "#54a0ff"; // Pure water blue
+            ctx.fillStyle = "#54a0ff"; 
           } else {
-            ctx.fillStyle = "#cd8455"; // Toxic rust brown
+            ctx.fillStyle = "#cd8455"; 
           }
 
           ctx.beginPath();
           ctx.arc(d.x, d.y, 7, 0, Math.PI * 2);
           ctx.fill();
 
-          // Idea 3: Scent Decay tracking if a clean drop exits unharvested
           if (d.y > targetY + targetRadius && !d.passedTarget) {
             d.passedTarget = true;
             if (d.type === "pure") {
-              progress = Math.max(0, progress - 5); // Missed fluid evaporation cost
+              progress = Math.max(0, progress - 5); 
               progressBar.style.width = progress + "%";
-              triggerFlash("rgba(235, 94, 85, 0.15)", 6);
+              triggerFlash("rgba(235, 94, 85, 0.15)", 0.1);
             }
           }
 
-          // Garbage collector cleanup loop
           if (d.y > canvas.height) {
             droplets.splice(i, 1);
           }
@@ -235,9 +232,11 @@
         }
       }
 
-      function triggerFlash(color, frames) {
+      function triggerFlash(color, seconds) {
+        if (flashTimer > 0.05) return;
         flashColor = color;
-        flashTimer = frames;
+        flashTimer = seconds;
+        flashTimerMax = seconds;
       }
 
       function handleInput(e) {
@@ -247,7 +246,6 @@
         let hitIndex = -1;
         let targetHit = null;
 
-        // Search for the droplet closest to the center line target window
         for (let i = 0; i < droplets.length; i++) {
           let distance = Math.abs(droplets[i].y - targetY);
           if (distance <= targetRadius) {
@@ -259,23 +257,17 @@
 
         if (targetHit !== null && hitIndex !== -1) {
           if (targetHit.type === "pure") {
-            // Caught a pure droplet: reduced from 15 to 2 to target a 2-minute completion time
             progress = Math.min(100, progress + 6);
-            triggerFlash("rgba(84, 160, 255, 0.25)", 5);
+            triggerFlash("rgba(84, 160, 255, 0.25)", 0.08);
           } else {
-            // Penalty for catching contamination: scaled down to match the new progress increments
             progress = Math.max(0, progress - 2);
-            triggerFlash("rgba(205, 132, 85, 0.4)", 12);
+            triggerFlash("rgba(205, 132, 85, 0.4)", 0.2);
           }
           droplets.splice(hitIndex, 1);
         } else {
-          // Penalty for missing an input/button mashing when no droplet is present
           progress = Math.max(0, progress - 2);
-          triggerFlash("rgba(255, 255, 255, 0.15)", 8);
+          triggerFlash("rgba(255, 255, 255, 0.15)", 0.13);
         }
-
-        // Scent Decay (inside the updateAndDraw loop) also updates naturally:
-        // (The missed blue drop penalty should be changed to progress = Math.max(0, progress - 1);)
 
         progressBar.style.width = progress + "%";
 
@@ -291,7 +283,7 @@
         window.parent.postMessage("APPLE_COMPLETE", "*");
       }
 
-      updateAndDraw();
+      requestAnimationFrame(updateAndDraw);
     </script>
   </body>
 </html>

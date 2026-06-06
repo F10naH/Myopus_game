@@ -97,6 +97,7 @@ let gameStarted = false;
 let gameRunning = false;
 let winOverlayShown = false;
 let score = 0;
+let lastTime = 0;
 
 const keys = {};
 
@@ -114,14 +115,14 @@ class Boat {
     this.height = 40;
     this.x = canvas.width / 2 - 35;
     this.y = canvas.height - 100;
-    this.speed = 7;
+    this.speed = 420;
   }
 
-  update() {
-    if (keys["ArrowLeft"]) this.x -= this.speed;
-    if (keys["ArrowRight"]) this.x += this.speed;
-    if (keys["ArrowUp"]) this.y -= this.speed;
-    if (keys["ArrowDown"]) this.y += this.speed;
+  update(dt) {
+    if (keys["ArrowLeft"]) this.x -= this.speed * dt;
+    if (keys["ArrowRight"]) this.x += this.speed * dt;
+    if (keys["ArrowUp"]) this.y -= this.speed * dt;
+    if (keys["ArrowDown"]) this.y += this.speed * dt;
 
     this.x = Math.max(0, Math.min(canvas.width - this.width, this.x));
     this.y = Math.max(0, Math.min(canvas.height - this.height, this.y));
@@ -161,11 +162,11 @@ class Obstacle {
     this.x = Math.random() * (canvas.width - this.width);
     this.y = -this.height;
 
-    this.speed = 4 + Math.random() * 2 + score * 0.08;
+    this.speed = (4 + Math.random() * 2 + score * 0.08) * 60;
   }
 
-  update() {
-    this.y += this.speed;
+  update(dt) {
+    this.y += this.speed * dt;
   }
 
   draw() {
@@ -321,6 +322,7 @@ function showStartScreen() {
     "click",
     () => {
       message.style.display = "none";
+      lastTime = performance.now();
       gameStarted = true;
       gameRunning = true;
     },
@@ -336,25 +338,25 @@ function restartGame() {
   boat.x = canvas.width / 2 - 35;
   boat.y = canvas.height - 100;
 
+  lastTime = performance.now();
   gameStarted = true;
   gameRunning = true;
   winOverlayShown = false;
   message.style.display = "none";
 }
 
-function animate() {
+function animate(currentTime) {
   requestAnimationFrame(animate);
+
+  if (!lastTime) lastTime = currentTime;
+  const dt = (currentTime - lastTime) / 1000;
+  lastTime = currentTime;
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   drawBackground();
 
-  if (!gameStarted) {
-    boat.draw();
-    return;
-  }
-
-  if (!gameRunning) {
+  if (!gameStarted || !gameRunning) {
     boat.draw();
     return;
   }
@@ -368,11 +370,11 @@ function animate() {
     ctx.fillText("The far shore is close...", 290, 45);
   }
 
-  boat.update();
+  boat.update(dt);
   boat.draw();
 
   obstacles.forEach((obstacle, index) => {
-    obstacle.update();
+    obstacle.update(dt);
     obstacle.draw();
 
     if (collide(boat, obstacle)) {
@@ -393,7 +395,7 @@ function animate() {
 }
 
 showStartScreen();
-animate();
+requestAnimationFrame(animate);
 </script>
 
 </body>

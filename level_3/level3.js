@@ -5,20 +5,15 @@ Main Narrative & Logic Script
 ========================================
 */
 
-/* Backdrops — same layering as level 2 (photo under mood + vignette). */
 const BACKDROP_IMAGES = {
   orchard: "images/chapter3-storybook-bg.png",
   hareScene: "images/chapter3-hare-scene.png",
   hareSilhouette: "images/hare-silhouette.svg",
 };
 
-/** Storybook photo under mood + vignette; specific creatures are silhouettes. */
 const ORCHARD_BACKDROP_POSITION = "center 50%";
-
 const ORCHARD_BACKDROP_ZOOM = "cover";
-
 const ORCHARD_PHOTO_OPACITY = 0.9;
-
 const BACKDROP_PHOTO_FADE_SEC = 2;
 const CHAPTER_TITLE_FADE_MS = 700;
 const CHAPTER3_CUTSCENE_SLIDES = [
@@ -40,15 +35,35 @@ let lastPhotoOpacity = 0;
 
 let levelState = {
   currentScene: "orchard_entry",
-  hoseConnected: false, // Requirement 1
-  appleScented: false, // Requirement 2
-  hareLethargic: false, // Set after feeding apple
-  pathCleared: false, // Final Goal
+  hoseConnected: false,
+  appleScented: false,
+  hareLethargic: false,
+  pathCleared: false,
   visitedHose: false,
   visitedApple: false,
   visitedHare: false,
   hasSeenHareReveal: false,
 };
+
+let inventory = [];
+
+function updateInventory() {
+  const panel = document.getElementById("inventory-panel");
+  const list = document.getElementById("inventory-list");
+  if (!panel || !list) return;
+
+  list.innerHTML = "";
+  if (inventory.length === 0) {
+    panel.style.display = "none";
+  } else {
+    panel.style.display = "block";
+    inventory.forEach((item) => {
+      const li = document.createElement("li");
+      li.textContent = item;
+      list.appendChild(li);
+    });
+  }
+}
 
 let activePuzzleFinish = null;
 let activePuzzleMessageListener = null;
@@ -93,7 +108,7 @@ function forceClosePuzzleIframe() {
 
 function setScene(scene) {
   levelState.currentScene = scene;
-  // NEW: Automatically trip the visit flags when entering a scene
+  
   if (scene === "hose_inspect") levelState.visitedHose = true;
   if (scene === "apple_inspect") levelState.visitedApple = true;
   if (scene === "hare_approach") levelState.visitedHare = true;
@@ -161,6 +176,13 @@ function renderScene() {
         \nThe heavy tangle of this iron-like mesh stretches across the entire row, completely blocking your path forward. To save your partner, you must find a way past this synthetic barrier.`,
         [
           {
+            text: "Approach the Hare",
+            hasObjective:
+              !levelState.pathCleared &&
+              (!levelState.visitedHare || levelState.appleScented),
+            action: () => setScene("hare_approach"),
+          },
+          {
             text: "Investigate the Hose",
             hasObjective: levelState.visitedHose && !levelState.hoseConnected,
             action: () => setScene("hose_inspect"),
@@ -173,13 +195,6 @@ function renderScene() {
               !levelState.appleScented,
             action: () => setScene("apple_inspect"),
           },
-          {
-            text: "Approach the Hare",
-            hasObjective:
-              !levelState.pathCleared &&
-              (!levelState.visitedHare || levelState.appleScented),
-            action: () => setScene("hare_approach"),
-          },
         ],
       );
       break;
@@ -191,7 +206,6 @@ function renderScene() {
       if (!levelState.hoseConnected) {
         hoseText = `You step cautiously toward the base of the rusted iron tap protruding from the packed earth. There, half-buried in the dust and crumbling microplastics, lies a fragment of a dried-out, cracked garden hose. To your small eyes, it is a hollow, synthetic carcass—vibrant yellow but stiffened and split by seasons of neglect. `;
 
-        // NEW: Dynamic Matrix Responses based on your file listings
         if (levelState.visitedApple && levelState.visitedHare) {
           hoseText += `<span style="color: #f4e8c8;">This broken plastic 'snake' may be both the source of the Hare's terror and the only tool capable of watering the bitter fruit down the row.</span> `;
         } else if (levelState.visitedHare) {
@@ -227,14 +241,13 @@ function renderScene() {
       break;
 
     case "hose_game_start":
-      // Hide the dialogue box text, show the minigame iframe frame
       const storyPanel = document.getElementById("storyPanel");
       const frame = document.getElementById("gameFrame");
 
       if (storyPanel && frame) {
         storyPanel.style.display = "none";
         frame.style.display = "block";
-        frame.src = "hose_puzzle.html"; // Load the grid puzzle file
+        frame.src = "hose_puzzle.html"; 
       }
 
       let finished = false;
@@ -242,32 +255,29 @@ function renderScene() {
         if (finished) return;
         finished = true;
         if (activePuzzleMessageListener === hoseMessageListener) {
-          window.removeEventListener("message", hoseMessageListener); //
-          activePuzzleMessageListener = null; //
+          window.removeEventListener("message", hoseMessageListener); 
+          activePuzzleMessageListener = null; 
         }
-        activePuzzleFinish = null; //
-        setSkipPuzzleButtonVisible(false); //
-        frame.style.display = "none"; //
-        storyPanel.style.display = "block"; //
-        frame.src = "about:blank"; //
+        activePuzzleFinish = null; 
+        setSkipPuzzleButtonVisible(false); 
+        frame.style.display = "none"; 
+        storyPanel.style.display = "block"; 
+        frame.src = "about:blank"; 
 
-        // Save progress state and redirect
-        levelState.hoseConnected = true; //
-        setScene("hose_inspect"); //
+        levelState.hoseConnected = true; 
+        setScene("hose_inspect"); 
       }
 
-      // Hook up an asynchronous listener to wait for the puzzle's message window
       function hoseMessageListener(e) {
         if (e.data === "HOSE_COMPLETE") {
-          //
           finish();
         }
       }
 
-      activePuzzleMessageListener = hoseMessageListener; //
-      activePuzzleFinish = finish; //
-      setSkipPuzzleButtonVisible(true); //
-      window.addEventListener("message", hoseMessageListener); //
+      activePuzzleMessageListener = hoseMessageListener; 
+      activePuzzleFinish = finish; 
+      setSkipPuzzleButtonVisible(true); 
+      window.addEventListener("message", hoseMessageListener); 
       break;
 
     case "apple_inspect":
@@ -275,10 +285,8 @@ function renderScene() {
       let appleOptions = [];
 
       if (!levelState.hoseConnected) {
-        // Branch 1: No water, no progress
         appleText = `You lean over the edge of a deep, collapsed crater in the rotting burlap. At the bottom sits a single, forgotten apple, mushy, shriveled, and bruised. You sniff at it. The sun has baked it dry, locking its sugars away. It desperately needs moisture if it is ever to release a sweet scent once again. `;
 
-        // NEW: Dynamic Matrix Responses based on your file listings
         if (levelState.visitedHose && levelState.visitedHare) {
           appleText += `<span style="color: #f4e8c8;">You now see the full picture: you must use the yellow hose to rehydrate the dry apple, creating the perfect scent to soothe the trapped Hare.</span> `;
         } else if (levelState.visitedHare) {
@@ -296,7 +304,6 @@ function renderScene() {
           },
         ];
       } else if (!levelState.appleScented) {
-        // Branch 2: Water is flowing, ready for the mini-game
         appleText = `The shriveled apple rests quietly in its crater, and a sudden spark of intuition hits you. Recognizing that moisture is the missing key to unlocking the fruit's sweet aroma, you carefully retrieve it from the earth. You carry the dry fruit over to the base of the rusted iron faucet where the water from your newly mended hose can pool around it. 
         \nAs the moisture seeps deep into the bruised flesh, the fruit begins to swell. Tiny, pale bubbles of fermentation hiss and crackle at its surface, fighting against the decay. However, the faucet spits out toxic waste as well as water. The sugars are waiting for a precise, rhythmic touch to guide the fermentation process and unlock the true, potent depth of its hidden aroma.`;
 
@@ -311,7 +318,6 @@ function renderScene() {
           },
         ];
       } else {
-        // Branch 3: Mini-game complete, apple is fully aromatic
         appleText = `You step back as a thick, invisible wave of scent rolls out from the depression, pooling heavily between the straight rows of trees. The apple is completely drenched, practically dissolving into a rich, dark mush under the steady rhythm of the water droplets.
         \nThe aroma is so thick it feels warm, cutting through the chemical stink of the old orchard. You think to yourself how this scent could soothe anyone.`;
 
@@ -327,7 +333,6 @@ function renderScene() {
       break;
 
     case "apple_game_start":
-      // Pull structural reference layers out of the layout
       const appleStoryPanel = document.getElementById("storyPanel");
       const appleFrame = document.getElementById("gameFrame");
 
@@ -344,7 +349,6 @@ function renderScene() {
                 ?.getElementById("gameCanvas")
                 ?.focus({ preventScroll: true });
             } catch (_) {
-              /* cross-origin guard */
             }
           },
           { once: true },
@@ -367,7 +371,6 @@ function renderScene() {
           e.preventDefault();
           input(e);
         } catch (_) {
-          /* iframe not ready */
         }
       };
       window.addEventListener("keydown", activeAppleSpaceListener);
@@ -387,13 +390,16 @@ function renderScene() {
         }
 
         activePuzzleFinish = null;
-        setSkipPuzzleButtonVisible(false); // Hide test button layer
+        setSkipPuzzleButtonVisible(false);
         appleFrame.style.display = "none";
         appleStoryPanel.style.display = "block";
         appleFrame.src = "about:blank";
 
-        // Mutate progress variables up and bounce redirect paths back
         levelState.appleScented = true;
+        if (!inventory.includes("Fermented Apple")) {
+          inventory.push("Fermented Apple");
+          updateInventory();
+        }
         setScene("apple_inspect");
       }
 
@@ -403,10 +409,9 @@ function renderScene() {
         }
       }
 
-      // Bind local operations into global engine variables to enable the skip button
       activePuzzleMessageListener = appleMessageListener;
       activePuzzleFinish = finishApplePuzzle;
-      setSkipPuzzleButtonVisible(true); // Render the operational skip option
+      setSkipPuzzleButtonVisible(true);
 
       window.addEventListener("message", appleMessageListener);
       break;
@@ -427,19 +432,16 @@ function renderScene() {
 
 function renderHareApproach() {
       if (!levelState.appleScented) {
-        // Branch A: Hare is frantic, terrified, and warning of snakes
         let hareText = `You step carefully onto the rotting burlap, but the moment your paws rustle the material, the Mountain Hare erupts into a blind, hysterical frenzy. It is thrashing wildly, kicking out with powerful, desperate back legs. The heavy plastic mesh of the bird netting stretches and snaps back; you are simply too small to handle the violent recoil of its panic. You are forced to stay back.
 \nThe creature’s eyes are wide, glassy, and rolled back in terror. It stares blankly at the plastic threads pinning it down, completely blind to the reality of the human garbage that holds it.
 \nHARE: "Stay back, small one! Back! The Spirit of the Orchard has finally come for me! It has woven a web of iron to punish my sins... and it has unleashed its demons! Beware the Yellow Snake sent down by the Spirit! I saw it writhing in the dirt, slithering through the rows to choke me... I was running from its venom, being chased by a filthy humanoid, when the web swallowed me whole! Go, before it wraps around you too!"`;
 
-        // NEW: Dynamic Response for Row 7 (Seen Hose, but not Apple yet)
         if (levelState.visitedHose && !levelState.visitedApple) {
           hareText += `\n\n<span style="color: #f4e8c8;">A 'Yellow Snake' slithering through the dirt... your mind flashes back to the harmless, stiff plastic hose you just found half-buried in the weeds nearby.</span>`;
         }
 
         hareText += `\n\nYou realize you cannot examine the net or get any closer without being struck by its thrashing legs. To move forward and clear the path, you think you must find a way to quiet its racing mind.`;
 
-        // NEW: Dynamic Response for Row 6 (Seen Apple, but not Hose yet)
         if (levelState.visitedApple && !levelState.visitedHose) {
           hareText += ` <span style="color: #f4e8c8;">The desperate creature's panic fills the space, and you think back to the shriveled apple down the row; if you could somehow make it a little more appetizing it might soothe this frenzy.</span>`;
         }
@@ -451,7 +453,6 @@ function renderHareApproach() {
           },
         ]);
       } else if (!levelState.hareLethargic) {
-        // Branch B: Apple is fermented, attracting the Hare
         showText(
           `You return, carrying the heavy, intoxicating aroma of the fermented apple. As you draw near, the thick cloud of wild sugars cuts through the stagnant chemical stink of the orchard grid. 
           \nThe Hare’s violent kicking abruptly stops. Its long ears twitch, and its nose ripples as it catches the heavy fragrance drifting across the burlap sacks. The hysterical terror in its eyes softens, replaced by a sudden, hollow hunger. It stops fighting the plastic threads, entirely transfixed by the hypnotic scent of the apple.`,
@@ -460,13 +461,18 @@ function renderHareApproach() {
               text: "Feed the fermented apple to the Hare",
               action: () => {
                 levelState.hareLethargic = true;
+                inventory = inventory.filter(item => item !== "Fermented Apple");
+                updateInventory();
                 setScene("hare_approach");
               },
             },
           ],
         );
       } else {
-        // Branch C: Hare is fed and lethargic, ready for rescue
+        if (!inventory.includes("Glass Shard")) {
+          inventory.push("Glass Shard");
+          updateInventory();
+        }
         showText(
           `The Hare devours the mushy fruit. Its frantic, erratic movements have given way to a deep, heavy lethargy. Its eyes are half-closed, its breathing slow and rhythmic against the damp earth.
           \nIt is finally safe to approach. You pull out a sharp glass shard stuck nearby in the ground. The plastic bird netting is tight and unyielding, but with the hare resting quietly, you can position the blade without the risk of a crushing kick. It is time to slice through the 'Spirit's web.'`,
@@ -483,7 +489,6 @@ function renderHareApproach() {
 function renderSceneRemainder() {
   switch (levelState.currentScene) {
     case "level_complete":
-      // Concluding dialogue block containing the full lore payoff
       showText(
         `With a sharp, plastic snap, the final structural thread severs. The heavy roll of bird netting slumps away into the dust, completely uncoiling from the Hare's back. The path forward is finally clear. The Hare stirs, shaking the remaining synthetic fibers from its fur. It stands up, looking at its paws, then down at you with a profound, quiet gratitude.
         \nHARE: "The iron web... it is broken. You fought the Spirit's curse and won... No, listen to me. I see it clearly now. When the humans still tended to these straight rows, I would sneak beneath the canopy and steal the bitter, fallen fruit to feed my family. It was wrong, but we were hungry. But recently, the humans vanished. The orchard was abandoned. The fruit withered, and there was never enough to fill our bellies.
@@ -499,14 +504,13 @@ function renderSceneRemainder() {
       break;
 
     case "hare_game_start":
-      // Pull document framework visual view hooks out
       const hareStoryPanel = document.getElementById("storyPanel");
       const hareFrame = document.getElementById("gameFrame");
 
       if (hareStoryPanel && hareFrame) {
         hareStoryPanel.style.display = "none";
         hareFrame.style.display = "block";
-        hareFrame.src = "hare_puzzle.html"; // Load the sawing execution script canvas view
+        hareFrame.src = "hare_puzzle.html"; 
       }
 
       let hareFinished = false;
@@ -520,12 +524,11 @@ function renderSceneRemainder() {
         }
 
         activePuzzleFinish = null;
-        setSkipPuzzleButtonVisible(false); // Clear standard test buttons away
+        setSkipPuzzleButtonVisible(false); 
         hareFrame.style.display = "none";
         hareStoryPanel.style.display = "block";
         hareFrame.src = "about:blank";
 
-        // Push level progress markers upward
         levelState.pathCleared = true;
         setScene("level_complete");
       }
@@ -536,10 +539,9 @@ function renderSceneRemainder() {
         }
       }
 
-      // Track active parameters globally to integrate with the layout's skip puzzle buttons
       activePuzzleMessageListener = hareMessageListener;
       activePuzzleFinish = finishHarePuzzle;
-      setSkipPuzzleButtonVisible(true); // Mount testing shortcuts seamlessly
+      setSkipPuzzleButtonVisible(true); 
 
       window.addEventListener("message", hareMessageListener);
       break;
